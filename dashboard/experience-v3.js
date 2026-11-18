@@ -33,7 +33,7 @@
    }
  }
  function syncHeaderArt(){
-   for(const header of [document.querySelector('.top'),document.querySelector('.cal-header')].filter(Boolean)){
+   for(const header of [document.querySelector('.top'),document.querySelector('.cal-header'),document.querySelector('.settings-page-intro')].filter(Boolean)){
      if(header.querySelector(':scope > .brand-header-media'))continue;
      const media=document.createElement('span');
      media.className='brand-header-media';media.setAttribute('aria-hidden','true');

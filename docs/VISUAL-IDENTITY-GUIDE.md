@@ -77,3 +77,7 @@ See [V5 polish and browser verification](EXPERIENCE-V5-POLISH.md). V5 fixes an a
 
 ## Experience V6
 See [V6 calendar and settings guide](EXPERIENCE-V6-CALENDAR-OPERATIONS.md) for clear month navigation, side-panel appointment summaries, event form improvements, operational Settings and unboxed Mandala geometry.
+
+
+## Experience V7
+Read [V7 operational design and brand guide](EXPERIENCE-V7-UI-WORKFLOWS.md). Its heading compositions use page-specific original Torus images near the title and sacred geometry on the opposite side; darker charcoal-green Night Grove and warmer Daylight colors improve legibility.

@@ -83,3 +83,8 @@ The last approved design is preserved in [`backup/pre-v5-surgical-polish-2026-11
 The approved V5 is backed up at [`backup/pre-calendar-settings-v6-2026-11-17`](https://github.com/SacredRebel/TorusMindDashboard-visual/tree/backup/pre-calendar-settings-v6-2026-11-17). V6 provides clear previous/next **month** navigation; appointment and follow-up details **inside Calendar** with separate partner/event profile links; a redesigned, partner-linked Plan Event drawer; a one-header Settings page with independently stacked cards and genuinely persisted, local browser display preferences; and the Mandala rendered **directly on the original hero background**, without its boxed overlay. See [V6 operations and migration guide](docs/EXPERIENCE-V6-CALENDAR-OPERATIONS.md).
 
 **Migration boundary:** Live start/end times and event notes require the optional `supabase/migrations/20261117_event_schedule.sql` applied by the database administrator. Demo supports these fields immediately; the existing live events model remains compatible with older schemas. Google Sheets live two-way sync is not connected.
+
+
+### Experience V7 — readable themes and operational page controls
+
+The previous V6 is preserved at [`backup/pre-v7-operational-polish-2026-11-17`](https://github.com/SacredRebel/TorusMindDashboard-visual/tree/backup/pre-v7-operational-polish-2026-11-17). V7 refines secondary-page headers and both brand themes, fixes dark Calendar contrast, adds fast in-place appointment accordions with clear contact actions, adds expandable Events table rows, and upgrades Pipeline with filters, statistics, selection, bulk ownership/stage updates and quick CRM actions. See [the V7 workflow guide](docs/EXPERIENCE-V7-UI-WORKFLOWS.md).

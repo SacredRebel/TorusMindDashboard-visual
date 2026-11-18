@@ -217,7 +217,7 @@
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const opts = (list, sel) => list.map((o) => { const [v, l] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(v)}"${v === sel ? ' selected' : ''}>${esc(l)}</option>`; }).join('');
   const view = $('[data-view]');
-  const ui = { state: 'ready', q: '', status: '', activity: '', via: '', pact: '', sort: 'next', dir: 1, range: 90, prange: 'all', month: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1), calSelected:iso(TODAY), todaySelected:'', pipelinePage:0, calMode:PREFS.defaultView,calRecord:'',calFilter:'all', pending: false, importRows: null };
+  const ui = { state: 'ready', q: '', status: '', activity: '', via: '', pact: '', sort: 'next', dir: 1, range: 90, prange: 'all', month: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1), calSelected:iso(TODAY), todaySelected:'', pipelinePage:0, calMode:PREFS.defaultView,calRecord:'',calFilter:'all',eventOpen:'',pipelineOwner:'',pipelineActivity:'',pipelineDue:'all',pipelineSort:'due',pipelineSelected:new Set(), pending: false, importRows: null };
   let lastFocus = null;
 
   const ICON = {
@@ -256,6 +256,44 @@
   const monthRows = (rows, empty) => withState(rows, { msg: empty }, (items) => `<table class="cards"><thead><tr><th>Month</th><th class="right">Leads</th><th class="right">Consults</th><th class="right">Converted</th></tr></thead><tbody>${items.map((r) => `<tr><td>${esc(fmtMonth(r.month, true))}</td><td class="right num" data-label="Leads">${r.leads}</td><td class="right num" data-label="Consults">${r.consults}</td><td class="right num" data-label="Converted">${r.converted}</td></tr>`).join('')}</tbody></table>`);
 
   /* ---------------- Pages ---------------- */
+  const lastTouchDate=(id)=>touchesOf(id)[0]?.date||'';
+  function eventInlineDetails(e){
+    const result=creditTotals(e.id),contacts=metAtEvent(e.id),association=partner(e.venue);
+    const cost=(e.cost||0)+(e.hours||0)*DATA.settings.staffCost;
+    const fields=[
+      ['When',fmt(e.date,{weekday:'long',month:'long',day:'numeric',year:'numeric'})+(e.startTime?' · '+e.startTime+(e.endTime?'–'+e.endTime:''):'')],
+      ['Format',(e.type||'Event')+' · '+(e.format||'In-person')],
+      ['Host / partner',association?association.contact+' · '+association.org:'Not linked'],
+      ['BD activity',act(e.activity).name],
+      ['Attendance',(e.attendees||0)+' attended · '+(e.signups||0)+' signups'],
+      ['Finance',money(result.revenue)+' revenue · '+money(cost)+' cost'],
+      ['Contacts / leads',contacts.length+' professional contacts · '+result.leads+' patient leads']
+    ];
+    return `<div class="event-accordion-content">
+      <div class="event-accordion-details"><dl>${fields.map(([label,value])=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>
+        ${e.details?`<p class="event-accordion-notes"><b>Agenda & logistics</b><span>${esc(e.details)}</span></p>`:''}
+      </div>
+      <div class="event-accordion-linked"><h3>Related people</h3>
+        ${association?`<a href="#partner-${esc(association.id)}">${esc(association.contact)} · ${esc(association.org)} ↗</a>`:'<p>No linked host/partner</p>'}
+        ${contacts.length?`<div class="event-contact-list">${contacts.map(p=>`<a href="#partner-${esc(p.id)}">${esc(p.contact)} ↗</a>`).join('')}</div>`:'<p>No professional contacts first met here.</p>'}
+        <div class="event-accordion-buttons">
+          <button type="button" class="btn primary" data-act="edit-event" data-id="${esc(e.id)}">Edit event</button>
+          <button type="button" class="btn" data-act="duplicate-event" data-id="${esc(e.id)}">Duplicate</button>
+          <a class="btn" href="#event-${esc(e.id)}">Full report ↗</a>
+        </div>
+      </div>
+    </div>`;
+  }
+  function pipelineFiltered(){
+    const rows=DATA.partners.filter(p=>p.status!=='Not a fit'&&
+      (!ui.pipelineOwner||p.owner===ui.pipelineOwner)&&(!ui.pipelineActivity||p.activity===ui.pipelineActivity)&&
+      (ui.pipelineDue==='all'||(ui.pipelineDue==='none'?!p.next:p.next&&
+      (ui.pipelineDue==='overdue'?days(p.next)<0:days(p.next)>=0&&days(p.next)<=7))));
+    const date=p=>p.next||'9999-12-31';
+    return rows.sort((a,b)=>ui.pipelineSort==='name'?a.contact.localeCompare(b.contact):
+      ui.pipelineSort==='recent'?lastTouchDate(b.id).localeCompare(lastTouchDate(a.id)):
+      date(a).localeCompare(date(b))||a.contact.localeCompare(b.contact));
+  }
   const pages = {
     today() {
       const tm = sum(countsFor((c) => c.month === THIS_MONTH)), lm = sum(countsFor((c) => c.month === LAST_MONTH));
@@ -346,21 +384,77 @@
       const visible=window.innerWidth<760?1:window.innerWidth<1190?2:3;
       const pages=Math.ceil(STAGES.length/visible);
       ui.pipelinePage=Math.max(0,Math.min(pages-1,ui.pipelinePage||0));
+      const filtered=pipelineFiltered(),ids=new Set(filtered.map(p=>p.id));
       const start=ui.pipelinePage*visible,stages=STAGES.slice(start,start+visible);
-      const groups=STAGES.map((stage,i)=>`<button type="button" class="pipeline-stage-tab" data-pipeline-jump="${i}" aria-pressed="${i>=start&&i<start+visible}"><span>${esc(stage)}</span><b>${DATA.partners.filter(p=>p.status===stage).length}</b></button>`).join('');
-      return `<div class="pipeline-intro"><p>Move relationships forward through six stages. Drag within the visible group, or use <strong>Move to</strong> for any stage.</p><div class="pipeline-controls"><small>Stages ${start+1}–${start+stages.length} of ${STAGES.length}</small><button type="button" data-pipeline-page="-1" aria-label="Previous pipeline stages" ${ui.pipelinePage===0?'disabled':''}>‹</button><button type="button" data-pipeline-page="1" aria-label="Next pipeline stages" ${ui.pipelinePage===pages-1?'disabled':''}>›</button></div></div>
-        <div class="pipeline-stage-tabs" role="group" aria-label="Jump to pipeline stage">${groups}</div>
-        <div class="board pipeline-board" style="--stage-visible:${visible}" data-board aria-label="Relationship pipeline stages" tabindex="0">${stages.map((s) => { const items = DATA.partners.filter((p) => p.status === s);
-        return `<section class="col" data-col="${esc(s)}" aria-label="${esc(s)}"><h2><span>${esc(s)}</span><span class="num">${items.length}</span></h2>
-          ${items.map((p) => `<article class="tile" draggable="true" data-drag="${esc(p.id)}"><a href="#partner-${esc(p.id)}">${esc(p.contact)}</a><small>${esc(p.org)}</small>
-            <div class="top-actions">${actChip(p.activity)}${p.next ? dueChip(p) : ''}</div>
-            <label class="field-label">Move to<select class="field" data-move="${esc(p.id)}">${opts(ALL_STATUS, s)}</select></label></article>`).join('') || '<p class="muted" style="padding:var(--space-2)">Nobody at this stage yet.</p>'}</section>`; }).join('')}</div>`;
+      const owners=[...new Set(DATA.partners.map(p=>p.owner).filter(Boolean))].sort();
+      const selected=[...ui.pipelineSelected].filter(id=>ids.has(id));
+      const groups=STAGES.map((stage,i)=>`<button type="button" class="pipeline-stage-tab" data-pipeline-jump="${i}" aria-pressed="${i>=start&&i<start+visible}"><span>${esc(stage)}</span><b>${filtered.filter(p=>p.status===stage).length}</b></button>`).join('');
+      const stat=(label,n)=>`<div><small>${label}</small><strong>${n}</strong></div>`;
+      return `<section class="pipeline-overview" aria-label="Pipeline overview">
+        ${stat('Relationships in view',filtered.length)}
+        ${stat('Overdue follow-ups',filtered.filter(overdue).length)}
+        ${stat('Due next 7 days',filtered.filter(p=>p.next&&days(p.next)>=0&&days(p.next)<=7).length)}
+        ${stat('Active referrers',filtered.filter(p=>p.status==='Active referrer').length)}
+      </section>
+      <div class="pipeline-toolbar">
+        <label>Owner<select data-pipe-filter="owner"><option value="">All owners</option>${opts(owners,ui.pipelineOwner)}</select></label>
+        <label>Activity<select data-pipe-filter="activity"><option value="">All activities</option>${opts(ACTIVITIES.map(a=>[a.id,a.name]),ui.pipelineActivity)}</select></label>
+        <label>Follow-up<select data-pipe-filter="due">${opts([['all','Every date'],['overdue','Overdue'],['week','Next 7 days'],['none','No date']],ui.pipelineDue)}</select></label>
+        <label>Sort<select data-pipe-filter="sort">${opts([['due','Follow-up date'],['name','Name A–Z'],['recent','Last touch']],ui.pipelineSort)}</select></label>
+        <button type="button" class="pipeline-clear" data-pipeline-clear>Reset filters</button>
+      </div>
+      <div class="pipeline-bulk">
+        <label class="pipeline-selectall"><input type="checkbox" data-pipe-all ${filtered.length&&filtered.every(p=>ui.pipelineSelected.has(p.id))?'checked':''}> Select visible ${filtered.length}</label>
+        <span>${selected.length} selected</span>
+        <select aria-label="Bulk move stage" data-pipe-bulk-stage><option value="">Move selected to…</option>${opts(ALL_STATUS)}</select>
+        <select aria-label="Bulk assign owner" data-pipe-bulk-owner><option value="">Assign owner…</option>${opts(owners)}</select>
+      </div>
+      <div class="pipeline-intro"><p>Filter relationships, log touches and schedule follow-ups. Every change uses the existing partner record.</p>
+        <div class="pipeline-controls"><small>Stages ${start+1}–${start+stages.length} of ${STAGES.length}</small>
+          <button type="button" data-pipeline-page="-1" aria-label="Previous pipeline stages" ${ui.pipelinePage===0?'disabled':''}>‹</button>
+          <button type="button" data-pipeline-page="1" aria-label="Next pipeline stages" ${ui.pipelinePage===pages-1?'disabled':''}>›</button>
+        </div></div>
+      <div class="pipeline-stage-tabs" role="group" aria-label="Jump to pipeline stage">${groups}</div>
+      <div class="board pipeline-board" style="--stage-visible:${visible}" data-board aria-label="Relationship pipeline stages" tabindex="0">
+        ${stages.map(stage=>{
+          const items=filtered.filter(p=>p.status===stage);
+          return `<section class="col" data-col="${esc(stage)}" aria-label="${esc(stage)}">
+            <h2><span>${esc(stage)}</span><span class="num">${items.length}</span></h2>
+            ${items.map(p=>`<article class="tile pipeline-tile" draggable="true" data-drag="${esc(p.id)}">
+              <div class="pipeline-tile-top"><label title="Select ${esc(p.contact)}"><input type="checkbox" data-pipe-select="${esc(p.id)}" ${ui.pipelineSelected.has(p.id)?'checked':''} aria-label="Select ${esc(p.contact)}"></label><a href="#partner-${esc(p.id)}">${esc(p.contact)}</a></div>
+              <small>${esc(p.org)}</small><div class="top-actions">${actChip(p.activity)}${p.next?dueChip(p):'<span class="chip">No follow-up</span>'}</div>
+              <div class="pipeline-card-meta"><span>Owner <b>${esc(p.owner||'Torus team')}</b></span><span>Last touch <b>${lastTouchDate(p.id)?esc(fmt(lastTouchDate(p.id))):'–'}</b></span></div>
+              ${p.nextStep?`<p class="pipeline-step">${esc(p.nextStep)}</p>`:''}
+              <div class="pipeline-card-actions"><button data-act="log" data-id="${esc(p.id)}">Log touch</button><button data-act="edit-partner" data-id="${esc(p.id)}">Edit / schedule</button></div>
+              <label class="field-label">Move to<select class="field" data-move="${esc(p.id)}">${opts(ALL_STATUS,stage)}</select></label>
+            </article>`).join('')||'<p class="pipeline-empty">No matching relationships.</p>'}
+          </section>`;
+        }).join('')}
+      </div>`;
     },
 
     events() {
-      const rows = [...DATA.events].sort((a, b) => b.date.localeCompare(a.date));
-      return `<div class="card table-wrap">${withState(rows, { msg: 'No events yet. Plan the first community event or lunch-and-learn.', btn: 'Plan an event', act: 'add-event' }, (items) => `<table class="cards"><thead><tr><th>Event</th><th>Date</th><th>Activity</th><th class="right">Attendees</th><th class="right">Signup rate</th><th class="right">Contacts made</th><th class="right">Patient leads</th><th class="right">Revenue</th></tr></thead><tbody>
-        ${items.map((e) => { const t = creditTotals(e.id), past = days(e.date) <= 0; return `<tr data-href="#event-${esc(e.id)}" tabindex="0"><td><b>${esc(e.name)}</b><br><small class="muted">${esc(e.type || '')} · ${esc(e.format)}${e.venue ? ' · ' + esc(partner(e.venue)?.org) : ''}</small></td><td data-label="Date">${past ? esc(fmt(e.date)) : `<span class="chip info">${esc(rel(e.date))}</span>`}</td><td>${actChip(e.activity)}</td><td class="right num" data-label="Attendees">${past ? e.attendees : '–'}</td><td class="right num" data-label="Signup rate">${past && e.attendees ? pct(e.signups / e.attendees) : '–'}</td><td class="right num" data-label="Contacts made">${metAtEvent(e.id).length}</td><td class="right num" data-label="Patient leads">${t.leads}</td><td class="right num" data-label="Revenue">${money(t.revenue)}</td></tr>`; }).join('')}</tbody></table>`)}</div>`;
+      const rows=[...DATA.events].sort((a,b)=>b.date.localeCompare(a.date));
+      return `<div class="card table-wrap event-register">${withState(rows,
+        {msg:'No events yet. Plan the first community event or lunch-and-learn.',btn:'Plan an event',act:'add-event'},
+        items=>`<table class="cards event-register-table"><thead><tr>
+          <th>Event</th><th>Date</th><th>Activity</th><th class="right">Attendees</th>
+          <th class="right">Signup rate</th><th class="right">Contacts made</th><th class="right">Patient leads</th><th class="right">Revenue</th>
+        </tr></thead><tbody>${items.map(e=>{
+          const totals=creditTotals(e.id),past=days(e.date)<=0,opened=ui.eventOpen===e.id;
+          return `<tr class="event-row${opened?' is-open':''}" data-event-row="${esc(e.id)}" data-event-toggle="${esc(e.id)}">
+            <td><button class="event-row-toggle" type="button" data-event-toggle="${esc(e.id)}" aria-expanded="${opened}" aria-controls="event-detail-${esc(e.id)}">
+              <span class="event-row-chevron" aria-hidden="true">⌄</span><span><strong>${esc(e.name)}</strong><small>${esc(e.type||'')} · ${esc(e.format)}${e.venue?' · '+esc(partner(e.venue)?.org):''}</small></span>
+            </button></td>
+            <td data-label="Date">${past?esc(fmt(e.date)):`<span class="chip info">${esc(rel(e.date))}</span>`}</td>
+            <td>${actChip(e.activity)}</td>
+            <td class="right num" data-label="Attendees">${past?e.attendees:'–'}</td>
+            <td class="right num" data-label="Signup rate">${past&&e.attendees?pct(e.signups/e.attendees):'–'}</td>
+            <td class="right num" data-label="Contacts made">${metAtEvent(e.id).length}</td>
+            <td class="right num" data-label="Patient leads">${totals.leads}</td>
+            <td class="right num" data-label="Revenue">${money(totals.revenue)}</td>
+          </tr><tr class="event-detail-row" id="event-detail-${esc(e.id)}" ${opened?'':'hidden'}><td colspan="8">${eventInlineDetails(e)}</td></tr>`;
+        }).join('')}</tbody></table>`)}</div>`;
     },
 
     event(id) {
@@ -445,7 +539,7 @@
               <button type="button" data-month="1" aria-label="Next calendar month"><span>Next month</span> ›</button>
             </div>${list}</div>
           <aside class="cal-day-panel"><span class="cal-eyebrow">Day agenda</span><h3>${esc(titleDate)}</h3><p>${dayItems.length} scheduled</p>
-            <div class="cal-day-list">${selectedRecord?calendarRecordSummary(selectedRecord):dayItems.length?dayItems.map(formatRow).join(''):'<div class="cal-empty">A clear day. Select a date to see its schedule.</div>'}</div>
+            <div class="cal-day-list" aria-live="polite">${calendarAgendaMarkup(selected)}</div>
             <button type="button" class="cal-add-day" data-act="calendar-add-event">+ Add event on this day</button>
           </aside>
         </div>
@@ -552,12 +646,42 @@
       <dl class="cal-record-facts">${fields.map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
       <div class="cal-record-actions">
         <button type="button" class="btn primary" data-act="${action}" data-id="${esc(record.id)}">Edit details</button>
-        <a class="cal-record-link" href="${esc(href)}">${isEvent?'Open full event':'Open partner profile'} ↗</a>
+        <a class="cal-record-link" href="${esc(href)}">${isEvent?'Open full event':'Open full contact'} ↗</a>
+        ${association?`<a class="cal-record-link cal-record-contact" href="#partner-${esc(association.id)}">Open linked contact ↗</a>`:''}
       </div>
       ${association?`<p class="cal-record-associated"><a href="#partner-${esc(association.id)}">Partner details: ${esc(association.contact)} ↗</a></p>`:''}
     </div>`;
   }
 
+  function calendarAgendaMarkup(date){
+    const items=calendarItems().filter(x=>x.date===date&&(ui.calFilter==='all'||(ui.calFilter==='events'?x.kind==='event':x.kind==='follow')));
+    if(!items.length)return '<p class="cal-empty">A clear day. Select another date or add a new event.</p>';
+    return items.map(x=>{
+      const key=x.kind+':'+x.id,open=ui.calRecord===key;
+      return `<div class="cal-appointment ${open?'is-expanded':''}">
+        <button type="button" class="cal-appointment-trigger" data-cal-open="${esc(key)}" data-cal-date="${esc(x.date)}" aria-expanded="${open}">
+          <span class="cal-appointment-dot ${x.kind}"></span>
+          <span class="cal-appointment-title"><strong>${esc(x.label)}</strong><small>${esc(x.sub)}</small></span>
+          <span class="cal-appointment-chevron" aria-hidden="true">⌄</span>
+        </button>
+        ${open?`<div class="cal-appointment-expanded">${calendarRecordSummary(x)}</div>`:''}
+      </div>`;
+    }).join('');
+  }
+  function updateCalendarAgenda(date){
+    ui.calSelected=date;
+    const items=calendarItems().filter(x=>x.date===date&&(ui.calFilter==='all'||(ui.calFilter==='events'?x.kind==='event':x.kind==='follow')));
+    const aside=document.querySelector('.cal-day-panel');
+    if(!aside)return rerender();
+    const title=aside.querySelector('h3'),count=aside.querySelector(':scope > p'),content=aside.querySelector('.cal-day-list');
+    if(title)title.textContent=fmt(date,{weekday:'long',month:'long',day:'numeric'});
+    if(count)count.textContent=items.length+' scheduled';
+    if(content)content.innerHTML=calendarAgendaMarkup(date);
+    document.querySelectorAll('.cal-cell').forEach(c=>{
+      const selected=c.dataset.calCell===date;c.classList.toggle('is-selected',selected);
+      c.setAttribute('aria-selected',String(selected));
+    });
+  }
   function calendarItems() {
     return [...DATA.partners.filter(p=>p.next&&p.status!=='Not a fit').map(p=>({date:p.next,kind:'follow',id:p.id,late:overdue(p),label:p.contact,sub:p.nextStep||p.org,href:'#partner-'+p.id})),
       ...DATA.events.map(e=>({date:e.date,kind:'event',id:e.id,late:false,label:e.name,sub:(e.startTime?e.startTime+' · ':'')+(e.type||'Event')+' · '+(e.format||'In-person'),href:'#event-'+e.id}))];
@@ -814,21 +938,33 @@
   /* ---------------- Events ---------------- */
   document.addEventListener('click', async (e) => {
 
-    const t = e.target.closest('[data-cal-open],[data-cal-back],[data-act],[data-sort],[data-range],[data-prange],[data-month],[data-cal-day],[data-cal-cell],[data-mini-day],[data-mini-close],[data-pipeline-page],[data-pipeline-jump],[data-cal-mode],[data-cal-filter],tr[data-href]');
+    const t = e.target.closest('[data-event-toggle],[data-pipeline-clear],[data-cal-open],[data-cal-back],[data-act],[data-sort],[data-range],[data-prange],[data-month],[data-cal-day],[data-cal-cell],[data-mini-day],[data-mini-close],[data-pipeline-page],[data-pipeline-jump],[data-cal-mode],[data-cal-filter],tr[data-href]');
     if (!t) { if (e.target.matches('[data-drawer]')) closeDrawer(); return; }
     if (t.matches('tr[data-href]')) { if (!e.target.closest('a,button,select')) location.hash = t.dataset.href; return; }
     if (t.dataset.sort) { ui.dir = ui.sort === t.dataset.sort ? -ui.dir : 1; ui.sort = t.dataset.sort; rerender(); return; }
     if (t.dataset.range) { ui.range = t.dataset.range === 'all' ? 'all' : +t.dataset.range; rerender(); return; }
     if (t.dataset.prange) { ui.prange = t.dataset.prange === 'all' ? 'all' : +t.dataset.prange; rerender(); return; }
-    if(t.dataset.calOpen){
-      e.preventDefault();
-      ui.calRecord=t.dataset.calOpen;
-      ui.calSelected=t.dataset.calDate||ui.calSelected;
-      const dt=parse(ui.calSelected);
-      ui.month=new Date(dt.getFullYear(),dt.getMonth(),1);
-      rerender();return;
+    if(t.dataset.eventToggle){
+      const id=t.dataset.eventToggle,open=ui.eventOpen===id;
+      ui.eventOpen=open?'':id;
+      document.querySelectorAll('[data-event-row]').forEach(row=>{
+        const expanded=!open&&row.dataset.eventRow===id;
+        row.classList.toggle('is-open',expanded);
+        row.querySelector('[data-event-toggle]')?.setAttribute('aria-expanded',String(expanded));
+        const details=document.getElementById('event-detail-'+row.dataset.eventRow);
+        if(details)details.hidden=!expanded;
+      });
+      return;
     }
-    if(t.hasAttribute('data-cal-back')){ui.calRecord='';rerender();return;}
+    if(t.dataset.calOpen){
+      ui.calRecord=ui.calRecord===t.dataset.calOpen?'':t.dataset.calOpen;
+      updateCalendarAgenda(t.dataset.calDate||ui.calSelected);return;
+    }
+    if(t.hasAttribute('data-cal-back')){ui.calRecord='';updateCalendarAgenda(ui.calSelected);return;}
+    if(t.hasAttribute('data-pipeline-clear')){
+      Object.assign(ui,{pipelineOwner:'',pipelineActivity:'',pipelineDue:'all',pipelineSort:'due'});
+      ui.pipelineSelected.clear();rerender();return;
+    }
     if(t.dataset.pipelinePage){
       const n=window.innerWidth<760?1:window.innerWidth<1190?2:3;
       ui.pipelinePage=Math.max(0,Math.min(Math.ceil(STAGES.length/n)-1,(ui.pipelinePage||0)+Number(t.dataset.pipelinePage)));
@@ -857,21 +993,10 @@
       document.querySelectorAll('[data-mini-day]').forEach(el=>{el.classList.remove('is-selected');el.setAttribute('aria-pressed','false');});
       return;
     }
-    if(t.dataset.calCell){
-      ui.calRecord='';
-      ui.calSelected=t.dataset.calCell;
-      const dt=parse(ui.calSelected);ui.month=new Date(dt.getFullYear(),dt.getMonth(),1);
-      rerender();return;
-    }
+    if(t.dataset.calCell){ui.calRecord='';updateCalendarAgenda(t.dataset.calCell);return;}
     if(t.dataset.calMode){ui.calMode=t.dataset.calMode;rerender();return;}
     if(t.dataset.calFilter){ui.calFilter=t.dataset.calFilter;rerender();return;}
-    if(t.dataset.calDay){
-      ui.calRecord='';
-      ui.calSelected=t.dataset.calDay;
-      const dt=parse(ui.calSelected);ui.month=new Date(dt.getFullYear(),dt.getMonth(),1);
-      if(t.getAttribute('href')==='#calendar')location.hash='#calendar';
-      rerender();return;
-    }
+    if(t.dataset.calDay){ui.calRecord='';updateCalendarAgenda(t.dataset.calDay);return;}
     if(t.dataset.month){
       ui.calRecord='';
       const v=+t.dataset.month;ui.month=v===0?new Date(TODAY.getFullYear(),TODAY.getMonth(),1):new Date(ui.month.getFullYear(),ui.month.getMonth()+v,1);
@@ -890,6 +1015,10 @@
       else if (a === 'log') touchForm(id);
       else if (a === 'add-event') eventForm();
       else if (a === 'edit-event') eventForm(eventById(id));
+      else if (a === 'duplicate-event'){
+        const original=eventById(id);
+        if(original)eventForm({...original,id:'',name:original.name+' — copy',attendees:0,signups:0});
+      }
       else if (a === 'add-counts') countsForm();
       else if (a === 'edit-counts') countsForm(DATA.counts.find((c) => String(c.id) === id));
       else if (a === 'delete-counts') { const c = DATA.counts.find((x) => String(x.id) === id); await remove('lead_counts', c.id); closeDrawer(); rerender(); toast(`Deleted ${fmtMonth(c.month)} · ${c.via} · ${c.source} counts`); }
@@ -921,6 +1050,27 @@
   document.addEventListener('change', async (e) => {
     const t = e.target;
     try {
+      if(t.matches('[data-pipe-filter]')){
+        const key={owner:'pipelineOwner',activity:'pipelineActivity',due:'pipelineDue',sort:'pipelineSort'}[t.dataset.pipeFilter];
+        if(key){ui[key]=t.value;ui.pipelineSelected.clear();rerender();}return;
+      }
+      if(t.matches('[data-pipe-select]')){
+        if(t.checked)ui.pipelineSelected.add(t.dataset.pipeSelect);else ui.pipelineSelected.delete(t.dataset.pipeSelect);
+        rerender();return;
+      }
+      if(t.matches('[data-pipe-all]')){
+        for(const p of pipelineFiltered()){if(t.checked)ui.pipelineSelected.add(p.id);else ui.pipelineSelected.delete(p.id);}
+        rerender();return;
+      }
+      if(t.matches('[data-pipe-bulk-stage],[data-pipe-bulk-owner]')){
+        if(!t.value)return;
+        const matches=pipelineFiltered().filter(p=>ui.pipelineSelected.has(p.id));
+        if(!matches.length){t.value='';toast('Select partners first');return;}
+        const key=t.hasAttribute('data-pipe-bulk-stage')?'status':'owner',value=t.value;
+        t.disabled=true;
+        for(const p of matches)await upsert('partners',{...p,[key]:value});
+        ui.pipelineSelected.clear();rerender();toast(matches.length+' partner records saved');return;
+      }
       if (t.matches('[data-move]')) { const p = partner(t.dataset.move); await upsert('partners', { ...p, status: t.value }); rerender(); toast(`${p.contact} moved to ${t.value}`); }
       if (t.matches('[data-filter]')) { ui[t.dataset.filter] = t.value; rerender(`[data-filter="${t.dataset.filter}"]`); }
       if (t.matches('[data-pref]')){
