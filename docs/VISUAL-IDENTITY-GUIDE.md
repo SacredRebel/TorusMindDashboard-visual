@@ -44,3 +44,8 @@ Never commit patient data. Public demo mode has fictional data; do not imply tha
 
 ## Collaboration
 All work occurs in SacredRebel/TorusMindDashboard-visual, forked from kimdudine/TorusMindDashboard. The upstream repository remains unchanged until reviewed with its owner.
+
+## Public preview safeguards (release patch)
+The Vercel build now writes only `window.TORUS_CONFIG = null` when Supabase is unconfigured. It does not publish the inherited custom `demo/torus-demo.json` dataset into the public `config.js`. Fictional `sample.js` data is used instead. The custom data file is not part of Vercel's `dashboard` output.
+
+The standalone `/visual-preview.html` is served with a strict Content Security Policy. Its two precisely hashed inline scripts are allowed explicitly in `vercel.json`; inline button event handlers were replaced with event listeners so interactions continue to work without permitting arbitrary inline JavaScript. When editing this standalone preview script, regenerate both SHA-256 hashes in the CSP.
