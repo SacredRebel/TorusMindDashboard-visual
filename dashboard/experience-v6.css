@@ -1,0 +1,356 @@
+/* Torus Experience V6 — deliberate interactive calendar + usable operations settings.
+   Additive styling: preserve geometry, torus, brand palette and approved V5 surfaces. */
+
+/* Mandala uses the same unboxed hero surface as Torus. No green inset,
+   filter pane, border, inner vignette or tinted rectangular photograph. */
+html[data-theme="torus"] .welcome .torus-field[data-geometry-mode="flower"] {
+ background:none!important;background-image:none!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+ filter:none!important;isolation:auto!important;outline-offset:4px;
+}
+html[data-theme="torus"] .welcome .torus-field[data-geometry-mode="flower"]::before {
+ content:none!important;display:none!important;
+}
+html[data-theme="torus"] .welcome .torus-field[data-geometry-mode="flower"] .torus-field__canvas {
+ filter:drop-shadow(0 0 8px rgba(232,212,159,.20))!important;
+}
+html[data-theme="torus"] .welcome .torus-field .torus-field__motion-toggle {
+ right:8px;top:8px;bottom:auto;
+ background:rgba(22,51,36,.60);border-color:rgba(238,224,188,.28);
+ box-shadow:0 4px 15px rgba(9,32,23,.08);
+}
+html[data-theme="torus"] .welcome .torus-field__toolbar {
+ bottom:-14px;box-shadow:0 6px 14px rgba(12,42,27,.18);
+}
+html[data-theme="torus"][data-appearance="light"] .welcome .torus-field[data-geometry-mode="flower"] .torus-field__canvas {
+ filter:drop-shadow(0 0 10px rgba(255,223,153,.19))!important;
+}
+html[data-theme="torus"][data-appearance="dark"] .welcome .torus-field[data-geometry-mode="flower"] .torus-field__canvas {
+ filter:drop-shadow(0 0 8px rgba(221,197,132,.22))!important;
+}
+
+/* Month navigation immediately above grid, easy to discover and press. */
+html[data-theme="torus"] .cal-period-bar {
+ display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+ align-items:center;gap:10px;
+ min-height:61px;padding:8px 12px;
+ background:linear-gradient(105deg,rgba(215,235,215,.85),rgba(238,246,234,.93));
+ border-bottom:1px solid rgba(117,154,116,.20);
+}
+html[data-theme="torus"] .cal-period-bar strong {
+ font:500 clamp(14px,1.55vw,18px)/1.2 var(--font-display);
+ white-space:nowrap;color:#345a43;text-align:center;
+}
+html[data-theme="torus"] .cal-period-bar button {
+ min-height:40px;justify-self:start;display:inline-flex;align-items:center;
+ justify-content:center;gap:9px;padding:0 14px;
+ border:1px solid rgba(111,154,117,.33);
+ background:rgba(248,251,243,.90);
+ color:#325e42;font:500 12px var(--font-sans);
+ border-radius:11px;cursor:pointer;
+ transition:background .2s,box-shadow .2s;
+}
+html[data-theme="torus"] .cal-period-bar button:last-child {justify-self:end;}
+html[data-theme="torus"] .cal-period-bar button:hover {background:#d2e6d3;box-shadow:0 4px 12px rgba(32,68,41,.08);}
+html[data-theme="torus"] .cal-period-bar button:focus-visible {outline:2px solid #638d68;outline-offset:2px;}
+html[data-theme="torus"] .cal-month-panel {overflow:hidden;}
+html[data-theme="torus"][data-appearance="dark"] .cal-period-bar {
+ background:linear-gradient(106deg,#284b3a,#305341);
+ border-color:#4b7057;
+}
+html[data-theme="torus"][data-appearance="dark"] .cal-period-bar strong {color:#f4e3bf;}
+html[data-theme="torus"][data-appearance="dark"] .cal-period-bar button {
+ background:#335c45;border-color:#66856a;color:#f6e6c6;
+}
+html[data-theme="torus"][data-appearance="dark"] .cal-period-bar button:hover {background:#427154;}
+@media(max-width:640px){
+ html[data-theme="torus"] .cal-period-bar {min-height:56px;padding:8px;gap:4px;}
+ html[data-theme="torus"] .cal-period-bar button {font-size:16px;min-width:40px;padding:0 8px;}
+ html[data-theme="torus"] .cal-period-bar button span {display:none;}
+ html[data-theme="torus"] .cal-period-bar strong {font-size:15px;}
+}
+/* Calendar entries now behave as buttons that display an on-page summary. */
+html[data-theme="torus"] .cal-chip,
+html[data-theme="torus"] .cal-entry-link {
+ cursor:pointer;text-align:left;font:inherit;
+}
+html[data-theme="torus"] .cal-chip {
+ width:100%;min-width:0;display:flex;gap:5px;align-items:center;
+ border:1px solid transparent;max-width:100%;
+}
+html[data-theme="torus"] .cal-chip:hover {filter:brightness(.95);box-shadow:inset 0 0 0 1px rgba(91,143,107,.28);}
+html[data-theme="torus"] .cal-entry-link {
+ padding:3px 0;border:0;background:transparent;display:block;
+ color:#365a43;font-weight:600;max-width:100%;
+ white-space:normal;overflow-wrap:anywhere;line-height:1.4;
+}
+html[data-theme="torus"] .cal-entry-link:hover {text-decoration:underline;text-underline-offset:3px;}
+html[data-theme="torus"] .cal-entry-link:focus-visible {outline:2px solid var(--focus);outline-offset:2px;}
+html[data-theme="torus"] .cal-record-summary {display:grid;align-content:start;gap:12px;min-width:0;}
+html[data-theme="torus"] .cal-record-top {display:flex;align-items:center;justify-content:space-between;gap:8px;}
+html[data-theme="torus"] .cal-record-type {
+ padding:5px 10px;background:rgba(114,157,120,.16);
+ border-radius:999px;font-size:10px;letter-spacing:.07em;
+ font-weight:600;color:#446b4d;text-transform:uppercase;
+}
+html[data-theme="torus"] .cal-record-back {
+ min-width:35px;height:35px;cursor:pointer;
+ border:1px solid #b4cbb3;border-radius:10px;
+ background:#e3eee3;color:#436c51;font-size:22px;
+}
+html[data-theme="torus"] .cal-record-summary h3 {
+ font:400 clamp(20px,1.7vw,26px)/1.16 var(--font-display);
+ color:#365e42;overflow-wrap:anywhere;
+}
+html[data-theme="torus"] .cal-record-intro {
+ color:#55705a;line-height:1.5;white-space:pre-line;
+ font-size:12px;overflow-wrap:anywhere;
+}
+html[data-theme="torus"] .cal-record-facts {display:grid;gap:0;margin:2px 0 0;}
+html[data-theme="torus"] .cal-record-facts>div {
+ display:grid;gap:3px;padding:9px 0;
+ border-top:1px solid rgba(106,149,117,.22);min-width:0;
+}
+html[data-theme="torus"] .cal-record-facts dt {
+ font-size:10px;letter-spacing:.07em;text-transform:uppercase;
+ color:#708773;font-weight:600;
+}
+html[data-theme="torus"] .cal-record-facts dd {
+ margin:0;color:#365e43;font:500 12px/1.45 var(--font-sans);
+ overflow-wrap:anywhere;
+}
+html[data-theme="torus"] .cal-record-actions {display:grid;gap:9px;}
+html[data-theme="torus"] .cal-record-actions .btn {width:100%;border-radius:11px;}
+html[data-theme="torus"] .cal-record-link {
+ display:inline-flex;justify-content:center;align-items:center;
+ min-height:38px;border:1px solid rgba(96,134,99,.32);border-radius:11px;
+ text-align:center;text-decoration:none;color:#2d5b43;
+ font-size:12px;font-weight:600;background:rgba(241,248,234,.68);
+}
+html[data-theme="torus"] .cal-record-associated {font-size:11px;line-height:1.5;}
+html[data-theme="torus"] .cal-record-associated a {color:#42684d;}
+html[data-theme="torus"] .cal-day-list {overflow:visible;}
+html[data-theme="torus"][data-appearance="dark"] .cal-entry-link {color:#f0e2c7;}
+html[data-theme="torus"][data-appearance="dark"] .cal-record-summary h3 {color:#f2dfbd;}
+html[data-theme="torus"][data-appearance="dark"] .cal-record-type {background:#46684d;color:#f4e0b7;}
+html[data-theme="torus"][data-appearance="dark"] .cal-record-intro,
+html[data-theme="torus"][data-appearance="dark"] .cal-record-facts dt {color:#c2d9bf;}
+html[data-theme="torus"][data-appearance="dark"] .cal-record-facts dd {color:#f1ecd9;}
+html[data-theme="torus"][data-appearance="dark"] .cal-record-facts>div {border-color:#4c7054;}
+html[data-theme="torus"][data-appearance="dark"] .cal-record-back,
+html[data-theme="torus"][data-appearance="dark"] .cal-record-link {
+ background:#365c46;color:#f8e7c7;border-color:#698f6e;
+}
+/* One day agenda stays sticky enough for quick appointment inspection on desktop. */
+@media(min-width:1040px){
+ html[data-theme="torus"] .cal-day-panel {
+  align-self:start;max-height:calc(100vh - 78px);
+  overflow-y:auto;scrollbar-width:thin;
+ }
+}
+
+/* Styled event scheduling drawer, maintaining the original CRUD handlers. */
+html[data-theme="torus"] .drawer-panel[data-panel-type="event"] {
+ width:min(100%,555px);
+ padding:23px;display:grid;gap:0;align-content:start;
+ border-left:1px solid rgba(140,173,140,.35);
+ background:linear-gradient(154deg,#e8f2e7,#dfebe2 62%,#e8f1e7);
+ box-shadow:-15px 0 46px rgba(18,44,27,.19);scrollbar-gutter:stable;
+}
+html[data-theme="torus"] .event-drawer-head {
+ position:sticky;top:-23px;z-index:3;
+ padding:23px 24px 17px;margin:-23px -23px 19px;
+ background:linear-gradient(122deg,rgba(223,239,222,.98),rgba(237,247,233,.97));
+ border-bottom:1px solid rgba(117,155,117,.23);
+ backdrop-filter:blur(13px);
+}
+html[data-theme="torus"] .event-drawer-head::after {
+ content:"";position:absolute;right:10px;top:-4px;
+ width:74px;height:80px;
+ background:url("assets/geometry-orbits.svg") center/contain no-repeat;
+ opacity:.08;pointer-events:none;
+}
+html[data-theme="torus"] .event-drawer-kicker,
+html[data-theme="torus"] .settings-eyebrow {
+ text-transform:uppercase;letter-spacing:.11em;
+ font-size:10px;font-weight:600;color:#69856b;
+}
+html[data-theme="torus"] .event-drawer-head h2 {
+ font:300 clamp(26px,2.3vw,32px)/1.17 var(--font-display);
+ color:#345e42;margin:7px 0;
+}
+html[data-theme="torus"] .event-drawer-head p {
+ color:#607663;line-height:1.5;font-size:12px;max-width:44ch;
+}
+html[data-theme="torus"] .event-form {display:grid;grid-template-columns:minmax(0,1fr);gap:17px;}
+html[data-theme="torus"] .event-form-section {
+ min-width:0;margin:0;padding:15px 16px 17px;
+ border:1px solid rgba(109,148,113,.26);
+ border-radius:15px;
+ background:linear-gradient(148deg,rgba(245,251,241,.87),rgba(232,243,232,.83));
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.72),0 4px 13px rgba(30,70,38,.04);
+}
+html[data-theme="torus"] .event-form-section legend {
+ padding:0 8px;color:#486c4d;font-size:12px;font-weight:700;
+}
+html[data-theme="torus"] .event-form-section legend span {color:#b39562;font-weight:500;margin-right:7px;}
+html[data-theme="torus"] .event-field-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;}
+html[data-theme="torus"] .event-field-grid .full {grid-column:1/-1;}
+html[data-theme="torus"] .event-field-grid .field-label {min-width:0;display:grid;gap:6px;color:#4e6654;font-size:12px;font-weight:500;}
+html[data-theme="torus"] .event-field-grid .field {min-height:42px;border-radius:11px;border-color:#abc5ae;background:#f6fbf3;color:#30513b;}
+html[data-theme="torus"] .event-field-grid .field:focus-visible {outline:2px solid #6c9f76;outline-offset:1px;}
+html[data-theme="torus"] .event-field-grid textarea.field {min-height:88px;padding:12px;resize:vertical;line-height:1.55;}
+html[data-theme="torus"] .event-field-grid .field-label small {font-weight:400;color:#748773;line-height:1.4;}
+html[data-theme="torus"] .event-section-note {font-size:11px;color:#738a76;margin:-2px 0 12px;}
+html[data-theme="torus"] .event-schema-notice {grid-column:1/-1;padding:12px;background:#e2eadb;border-radius:10px;border:1px solid #bbd0b9;font-size:11px;line-height:1.55;color:#56715b;}
+html[data-theme="torus"] .event-form-submit {
+ position:sticky;bottom:-23px;z-index:3;
+ margin:0 -23px -23px;padding:14px 23px 19px;
+ border-top:1px solid rgba(128,163,125,.25);
+ background:linear-gradient(180deg,rgba(229,241,227,.96),rgba(217,234,220,.98));
+ backdrop-filter:blur(12px);
+}
+html[data-theme="torus"] .event-form-submit .top-actions {justify-content:flex-end;width:100%;max-width:none;}
+html[data-theme="torus"] .event-form-submit .btn {border-radius:11px;min-height:43px;}
+html[data-theme="torus"][data-appearance="dark"] .drawer-panel[data-panel-type="event"] {
+ background:linear-gradient(145deg,#203d30,#17362a);border-color:#59765e;
+}
+html[data-theme="torus"][data-appearance="dark"] .event-drawer-head {
+ background:linear-gradient(115deg,#2a503c,#234634);border-color:#5d825e;
+}
+html[data-theme="torus"][data-appearance="dark"] .event-drawer-kicker,
+html[data-theme="torus"][data-appearance="dark"] .event-drawer-head p,
+html[data-theme="torus"][data-appearance="dark"] .event-section-note {color:#c3d8be;}
+html[data-theme="torus"][data-appearance="dark"] .event-drawer-head h2 {color:#f5dfbc;}
+html[data-theme="torus"][data-appearance="dark"] .event-form-section {
+ background:linear-gradient(150deg,#294c39,#234432);border-color:#50775b;box-shadow:none;
+}
+html[data-theme="torus"][data-appearance="dark"] .event-form-section legend {color:#f5e1ba;}
+html[data-theme="torus"][data-appearance="dark"] .event-field-grid .field-label {color:#d4e3cc;}
+html[data-theme="torus"][data-appearance="dark"] .event-field-grid .field {background:#18392b;color:#f1ecd9;border-color:#6d8e72;}
+html[data-theme="torus"][data-appearance="dark"] .event-field-grid .field-label small {color:#bfd1b9;}
+html[data-theme="torus"][data-appearance="dark"] .event-form-submit {background:#234635;border-color:#537459;}
+html[data-theme="torus"][data-appearance="dark"] .event-schema-notice {background:#31543e;color:#e1eaca;border-color:#6b8869;}
+
+/* Settings now has independent vertical stacks, so expanding a details group
+   never stretches its neighboring column or creates large row-height gaps. */
+html[data-theme="torus"] .settings-shell {display:grid;gap:17px;}
+html[data-theme="torus"] .settings-page-intro {
+ display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;
+ padding:23px 26px;border-radius:20px;border:1px solid rgba(102,145,108,.20);
+ background:linear-gradient(110deg,#e1eee3,#dcece1 68%,#e8efe1);
+ box-shadow:0 8px 27px rgba(34,78,42,.05);
+}
+html[data-theme="torus"] .settings-page-intro h2 {
+ font:300 clamp(25px,2.5vw,32px)/1.2 var(--font-display);
+ color:#3c5946;margin:4px 0 6px;
+}
+html[data-theme="torus"] .settings-page-intro p {font-size:12px;color:#607764;}
+html[data-theme="torus"] .settings-columns {
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:17px;align-items:start;
+}
+html[data-theme="torus"] .settings-column {display:flex;flex-direction:column;min-width:0;gap:17px;}
+html[data-theme="torus"] .settings-column>.settings-card {
+ width:100%;margin:0;min-height:0;height:auto;overflow:visible;
+ align-self:start;padding:21px;
+ background-image:linear-gradient(145deg,#f0f6ed,#e5f0e5)!important;
+}
+html[data-theme="torus"] .settings-section-head {display:grid;gap:4px;margin-bottom:10px;}
+html[data-theme="torus"] .settings-section-head h2 {font:400 20px var(--font-display);}
+html[data-theme="torus"] .settings-control-list {display:grid;gap:14px;margin-top:18px;}
+html[data-theme="torus"] .settings-control-list .field-label {font-size:12px;display:grid;gap:6px;}
+html[data-theme="torus"] .settings-control-list select.field {min-height:43px;background:#eff8ed;}
+html[data-theme="torus"] .settings-card-actions {
+ margin-top:17px;display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+ border-top:1px solid rgba(112,152,113,.17);padding-top:13px;
+}
+html[data-theme="torus"] .settings-autosave {font-size:11px;color:#67816a;line-height:1.5;}
+html[data-theme="torus"] .settings-integration {
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ padding:13px 0;border-top:1px solid rgba(106,145,110,.19);
+ min-width:0;
+}
+html[data-theme="torus"] .settings-integration>span:first-child {display:grid;gap:4px;min-width:0;flex:1;}
+html[data-theme="torus"] .settings-integration b {color:#355c43;font-size:13px;font-weight:600;}
+html[data-theme="torus"] .settings-integration small {color:#647c67;font-size:11px;line-height:1.45;}
+html[data-theme="torus"] .settings-integration .btn {flex:none;font-size:11px;min-height:37px;padding:0 11px;}
+html[data-theme="torus"] .settings-status {
+ flex:none;display:inline-flex;align-items:center;padding:6px 10px;
+ background:#dce9dc;color:#466e50;border-radius:999px;
+ font:600 10px var(--font-sans);letter-spacing:.03em;
+}
+html[data-theme="torus"] .settings-status.online {background:#d3e9d4;color:#326743;}
+html[data-theme="torus"] .settings-status.demo {background:#ebe5d4;color:#806a43;}
+html[data-theme="torus"] .settings-privacy-note {
+ border-top:1px solid rgba(107,146,109,.19);padding-top:13px!important;
+ color:#667d65;font-size:11px!important;line-height:1.6;
+}
+html[data-theme="torus"] .settings-links {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+html[data-theme="torus"] .settings-links a {
+ min-height:44px;display:flex;justify-content:space-between;align-items:center;gap:8px;
+ padding:10px 12px;border-radius:11px;border:1px solid rgba(114,147,113,.25);
+ background:#e6f1e5;color:#3d694a;text-decoration:none;font-size:12px;font-weight:600;
+}
+html[data-theme="torus"] .settings-links a:hover {background:#d5e9d7;}
+html[data-theme="torus"] .settings-column .settings-tokens {
+ max-height:235px;overflow-y:auto;scrollbar-width:thin;
+}
+html[data-theme="torus"] .settings-choice {min-width:0;}
+html[data-theme="torus"][data-appearance="dark"] .settings-page-intro {
+ background:linear-gradient(120deg,#294b39,#244533);border-color:#54765a;
+}
+html[data-theme="torus"][data-appearance="dark"] .settings-page-intro h2 {color:#f1ddba;}
+html[data-theme="torus"][data-appearance="dark"] .settings-page-intro p,
+html[data-theme="torus"][data-appearance="dark"] .settings-autosave {color:#c0d5c1;}
+html[data-theme="torus"][data-appearance="dark"] .settings-column>.settings-card {
+ background-image:linear-gradient(145deg,#274a38,#203d31)!important;
+ border-color:#4e7254;
+}
+html[data-theme="torus"][data-appearance="dark"] .settings-integration {border-color:#4b6b52;}
+html[data-theme="torus"][data-appearance="dark"] .settings-integration b {color:#f2e5c7;}
+html[data-theme="torus"][data-appearance="dark"] .settings-integration small,
+html[data-theme="torus"][data-appearance="dark"] .settings-privacy-note {color:#c1d3bd;}
+html[data-theme="torus"][data-appearance="dark"] .settings-status {background:#446c4f;color:#f0e6c8;}
+html[data-theme="torus"][data-appearance="dark"] .settings-status.demo {background:#6c5a3f;color:#f1dec3;}
+html[data-theme="torus"][data-appearance="dark"] .settings-links a {
+ background:#315540;color:#f5e5c7;border-color:#5c7e60;
+}
+html[data-theme="torus"][data-appearance="dark"] .settings-links a:hover {background:#3b654b;}
+html[data-theme="torus"][data-appearance="dark"] .settings-control-list select.field {background:#1e4130;color:#f4edd8;border-color:#648469;}
+@media(max-width:1000px){
+ html[data-theme="torus"] .settings-columns {grid-template-columns:1fr;}
+}
+@media(max-width:580px){
+ html[data-theme="torus"] .settings-page-intro {padding:17px;}
+ html[data-theme="torus"] .settings-column>.settings-card {padding:17px;}
+ html[data-theme="torus"] .settings-integration {flex-wrap:wrap;}
+ html[data-theme="torus"] .settings-links {grid-template-columns:1fr;}
+}
+
+/* Persisted per-device compact density for busy CRM days; standard is default. */
+html[data-theme="torus"][data-density="compact"] .today-workspace .card {padding-block:12px;}
+html[data-theme="torus"][data-density="compact"] .today-focus .row {padding:7px 3px;}
+html[data-theme="torus"][data-density="compact"] .kpi {min-height:100px!important;padding:14px;}
+html[data-theme="torus"][data-density="compact"] .cal-cell {min-height:78px;}
+html[data-theme="torus"][data-density="compact"] .tile {padding:10px;gap:7px;}
+html[data-theme="torus"][data-density="compact"] th,
+html[data-theme="torus"][data-density="compact"] td {padding-block:8px;}
+html[data-theme="torus"][data-motion="reduced"] [data-view]>*,
+html[data-theme="torus"][data-motion="reduced"] .bar-fill,
+html[data-theme="torus"][data-motion="reduced"] .meter i {animation:none!important;}
+@media(prefers-reduced-motion:reduce){
+ html[data-theme="torus"] .cal-chip,
+ html[data-theme="torus"] .cal-period-bar button,
+ html[data-theme="torus"] .event-form-section {transition:none!important;animation:none!important;}
+}
+
+
+/* Settings has its own complete branded header, so never render a duplicate. */
+html[data-theme="torus"][data-screen="setup"] .top {display:none;}
+html[data-theme="torus"][data-screen="setup"] .main {padding-top:clamp(18px,2.2vw,30px);}
+html[data-theme="torus"] .settings-page-intro h1 {font:300 clamp(26px,2.5vw,34px)/1.18 var(--font-display);color:#355c43;}
+html[data-theme="torus"] .settings-page-controls {display:flex;align-items:center;flex-wrap:wrap;gap:10px;}
+html[data-theme="torus"] .settings-page-controls .theme-switch {min-height:40px;height:40px;background:rgba(230,243,224,.8);border-color:rgba(88,140,95,.23);}
+html[data-theme="torus"][data-appearance="dark"] .settings-page-intro h1 {color:#f6e5c6;}
+html[data-theme="torus"][data-appearance="dark"] .settings-page-controls .theme-switch {background:#355b44;color:#f6e5c6;border-color:#69866a;}

@@ -75,9 +75,16 @@ create table if not exists public.events (
   signups    integer not null default 0 check (signups >= 0),
   cost       numeric(10,2) not null default 0 check (cost >= 0),
   hours      numeric(6,2) not null default 0 check (hours >= 0),
+  start_time time,
+  end_time   time,
+  details    text not null default '',              -- business logistics; no patient details
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+-- Existing installations also need these additive columns (safe to rerun).
+alter table public.events add column if not exists start_time time;
+alter table public.events add column if not exists end_time time;
+alter table public.events add column if not exists details text not null default '';
 alter table public.partners drop constraint if exists partners_met_at_fkey;
 alter table public.partners add constraint partners_met_at_fkey foreign key (met_at) references public.events(id) on delete set null;
 

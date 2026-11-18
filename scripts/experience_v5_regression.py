@@ -80,7 +80,7 @@ async def main():
                 field=page.locator('.torus-field')
                 assert await field.get_attribute('data-geometry-mode')=='flower'
                 background=await field.evaluate('e=>getComputedStyle(e).backgroundImage')
-                assert 'linear-gradient' in background and 'brand-torus22' not in background,'photographic texture persists'
+                assert 'brand-torus22' not in background and background=='none','Mandala should share transparent hero without a filter box'
                 assert await field.locator('canvas').evaluate('e=>e.width')>100
                 assert await page.locator('.torus-field__toolbar').count()==1
                 if width==1440:

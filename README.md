@@ -76,3 +76,10 @@ The previously approved V3 design is backed up in [`backup/pre-layout-refinement
 ### Torus Experience V5 — subtle visual polish
 
 The last approved design is preserved in [`backup/pre-v5-surgical-polish-2026-11-17`](https://github.com/SacredRebel/TorusMindDashboard-visual/tree/backup/pre-v5-surgical-polish-2026-11-17). V5 fixes the literal escaped-newline HTML bug that put an unwanted strip above the app, removes repeating sacred-geometry wallpaper from cards, refines the 3D mandala's green atmosphere in both themes, eliminates stretched Today's empty card area, and gives Add Partner a structured, responsive, accessible form. **No business workflow, API or data-contract changes.** See [V5 release guide](docs/EXPERIENCE-V5-POLISH.md).
+
+
+### Experience V6 — calendar scheduling and operations preferences
+
+The approved V5 is backed up at [`backup/pre-calendar-settings-v6-2026-11-17`](https://github.com/SacredRebel/TorusMindDashboard-visual/tree/backup/pre-calendar-settings-v6-2026-11-17). V6 provides clear previous/next **month** navigation; appointment and follow-up details **inside Calendar** with separate partner/event profile links; a redesigned, partner-linked Plan Event drawer; a one-header Settings page with independently stacked cards and genuinely persisted, local browser display preferences; and the Mandala rendered **directly on the original hero background**, without its boxed overlay. See [V6 operations and migration guide](docs/EXPERIENCE-V6-CALENDAR-OPERATIONS.md).
+
+**Migration boundary:** Live start/end times and event notes require the optional `supabase/migrations/20261117_event_schedule.sql` applied by the database administrator. Demo supports these fields immediately; the existing live events model remains compatible with older schemas. Google Sheets live two-way sync is not connected.

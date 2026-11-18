@@ -1,3 +1,5 @@
+> **V6 update:** The Mandala now renders transparently on the original Torus hero, rather than the V5 dedicated background gradient. Calendar, Event and Settings workflows have also been upgraded. See [V6](EXPERIENCE-V6-CALENDAR-OPERATIONS.md).
+
 # Torus Mind & Medicine — Experience V5 polish
 
 ## Design contract and rollback

@@ -53,7 +53,7 @@ async def main():
           event=page.locator('.cal-chip.event').first
           assert await event.count()>0
           await event.click()
-          assert '#event-' in page.url,'Event link intercepted by calendar cell'
+          assert page.url.endswith('#calendar') and await page.locator('.cal-record-summary').count()==1,'Appointment should open in day summary'
         await page.goto(base+'#pipeline')
         await page.wait_for_timeout(100)
         expected=1 if width<760 else 2 if width<1190 else 3
@@ -81,7 +81,7 @@ async def main():
         await page.locator('.settings-choice').first.locator('summary').click()
         assert await page.locator('.settings-choice[open] .settings-tokens span').count()==6
         # Appearance is reachable and keeps correct theme across routes.
-        await page.locator('.top [data-theme-switch]').click()
+        await page.locator('.settings-page-intro [data-theme-switch]').click()
         assert await page.evaluate('document.documentElement.dataset.appearance')=='dark'
         await page.goto(base+'#calendar')
         assert await page.evaluate('document.documentElement.dataset.appearance')=='dark'

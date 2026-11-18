@@ -61,3 +61,8 @@ Optional: add a custom domain such as `bd.torusmedicine.com` under Project → S
 python3 -m http.server 4173 --directory dashboard   # http://localhost:4173 (demo mode)
 python3 scripts/shoot.py && python3 scripts/func.py # screenshots + click-through checks
 ```
+
+
+## Optional V6 event schedule fields
+
+For live event start time, end time and logistics notes, a Torus Supabase administrator must execute `supabase/migrations/20261117_event_schedule.sql` against the correct instance after review. This adds three nullable/backward-compatible event columns. V6 feature-detects them and hides those inputs on older schemas, preserving existing data and event functionality. The dashboard does not run migrations from the browser. These fields do **not** establish a Google Calendar or Google Sheets connection.

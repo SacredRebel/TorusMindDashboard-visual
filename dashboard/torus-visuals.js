@@ -77,7 +77,15 @@
       draw(inst);
     });
     host.addEventListener('pointermove', (ev) => {
-      if (!inst.drag) return;
+      if (!inst.drag) {
+        if(inst.mode==='rosette'&&ev.pointerType==='mouse'&&!reduceMotion.matches){
+          const b=host.getBoundingClientRect();
+          inst.pointerX=clamp((ev.clientX-b.left)/Math.max(1,b.width)*2-1,-1,1);
+          inst.pointerY=clamp((ev.clientY-b.top)/Math.max(1,b.height)*2-1,-1,1);
+          draw(inst);
+        }
+        return;
+      }
       const dx = ev.clientX - inst.drag.x, dy = ev.clientY - inst.drag.y;
       inst.orbitY += dx * .007;
       inst.orbitX = clamp(inst.orbitX + dy * .007, -1.5, 1.5);
@@ -85,6 +93,7 @@
       draw(inst);
     });
     const release = () => {inst.drag = null; host.classList.remove('is-dragging');};
+    host.addEventListener('pointerleave',()=>{inst.pointerX=0;inst.pointerY=0;if(inst.mode==='rosette')draw(inst);});
     host.addEventListener('pointerup', release); host.addEventListener('pointercancel', release);
     resize();
     updateButton(inst);
@@ -157,8 +166,8 @@
   // Keeps pointer orbit, pause, speed and reduced-motion behavior intact.
   function drawRosette(i,ctx) {
     const steps = i.w < 420 ? 66 : 88;
-    const turn = i.time*.065 + i.orbitY*.33;
-    const tilt = clamp(i.orbitX*.38-.12,-.48,.48);
+    const turn = i.time*.065 + i.orbitY*.33 + i.pointerX*.10;
+    const tilt = clamp(i.orbitX*.38-.12+i.pointerY*.11,-.48,.48);
     const cy=Math.cos(tilt), sy=Math.sin(tilt);
     const scale=Math.min(i.w*.205,i.h*.255);
     const projectPetal=(x,y,z)=>{
@@ -257,6 +266,7 @@
     i.toggle.textContent = i.play ? 'Pause motion' : 'Play motion';
     i.toggle.setAttribute('aria-label',i.play ? 'Pause geometric animation' : 'Play geometric animation');
   }
+  const motionEnabled=()=>!reduceMotion.matches&&document.documentElement.dataset.motion!=='reduced';
   function tick(now) {
     raf=0;
     const dt=last ? Math.min(.05,(now-last)/1000):.016; last=now;
@@ -265,11 +275,11 @@
         i.resizeObs?.disconnect();i.intersectionObs?.disconnect();all.delete(i);continue;
       }
       if(!i.visible || document.hidden) continue;
-      if(i.play && !reduceMotion.matches) i.time += dt*i.speed*3.2;
-      if(i.play && !reduceMotion.matches) draw(i);
+      if(i.play && motionEnabled()) i.time += dt*i.speed*3.2;
+      if(i.play && motionEnabled()) draw(i);
     }
     // Only schedule another frame when there is genuinely moving geometry.
-    if([...all].some(i => i.play && i.visible && i.speed > 0 && !reduceMotion.matches && !document.hidden)) raf=requestAnimationFrame(tick);
+    if([...all].some(i => i.play && i.visible && i.speed > 0 && motionEnabled() && !document.hidden)) raf=requestAnimationFrame(tick);
   }
   function start(){if(!raf){last=0;raf=requestAnimationFrame(tick);}}
   function mountAll(root=document) {
@@ -285,7 +295,8 @@
     setSpeed(value){for(const i of all)i.speed=clamp(Number(value)||0,.0,2);start();},
     setPlaying(value){for(const i of all){i.play=Boolean(value);updateButton(i);draw(i);}start();},
     toggle(){for(const i of all){i.play=!i.play;updateButton(i);draw(i);}start();},
-    render(){for(const i of all)draw(i);}
+    render(){for(const i of all)draw(i);},
+    refreshPreferences(){for(const i of all)draw(i);start();}
   };
   window.TorusVisuals=api;
   function init() {

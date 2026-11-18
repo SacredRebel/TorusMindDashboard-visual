@@ -50,6 +50,32 @@
   const EMPTY = () => ({ settings: { openDate: iso(TODAY), staffCost: 50 }, partners: [], touches: [], events: [], counts: [], team: [] });
   let DATA = LIVE ? EMPTY() : window.TORUS_SAMPLE(PACKAGES);
   let db = null, session = null, me = null;
+  let EVENT_SCHEDULE_SUPPORTED=!LIVE;
+  const PREF_KEY='torus-dashboard-ui-v1';
+  const PREF_DEFAULTS={weekStart:'sunday',defaultView:'month',density:'comfortable',motion:'ambient'};
+  function readPrefs(){
+    try{
+      const raw=JSON.parse(localStorage.getItem(PREF_KEY)||'{}');
+      return {
+        weekStart:['sunday','monday'].includes(raw.weekStart)?raw.weekStart:'sunday',
+        defaultView:['month','week','agenda'].includes(raw.defaultView)?raw.defaultView:'month',
+        density:['comfortable','compact'].includes(raw.density)?raw.density:'comfortable',
+        motion:['ambient','reduced'].includes(raw.motion)?raw.motion:'ambient'
+      };
+    }catch(_){return {...PREF_DEFAULTS};}
+  }
+  let PREFS=readPrefs();
+  function applyPrefs(){
+    document.documentElement.dataset.density=PREFS.density;
+    document.documentElement.dataset.motion=PREFS.motion;
+  }
+  applyPrefs();
+  function savePrefs(){
+    try{localStorage.setItem(PREF_KEY,JSON.stringify(PREFS));}catch(_){}
+    applyPrefs();
+    window.TorusVisuals?.refreshPreferences?.();
+  }
+
 
   // Database rows (snake_case) <-> app records (camelCase). One place to change if a column changes.
   const TABLES = {
@@ -60,8 +86,8 @@
       from: (r) => ({ id: r.id, partner: r.partner_id, date: r.date, method: r.method, by: r.done_by, outcome: r.outcome, note: r.note, hours: +r.hours, cost: +r.cost }),
       to: (t) => ({ partner_id: t.partner, date: t.date, method: t.method, done_by: t.by, outcome: t.outcome, note: t.note, hours: +t.hours || 0, cost: +t.cost || 0 }) },
     events: { coll: 'events', key: 'id',
-      from: (r) => ({ id: r.id, name: r.name, type: r.type, activity: r.activity, date: r.date, venue: r.venue_id || '', format: r.format, attendees: +r.attendees, signups: +r.signups, cost: +r.cost, hours: +r.hours }),
-      to: (e) => ({ id: e.id, name: e.name, type: e.type, activity: e.activity, date: e.date, venue_id: e.venue || null, format: e.format, attendees: +e.attendees || 0, signups: +e.signups || 0, cost: +e.cost || 0, hours: +e.hours || 0 }) },
+      from: (r) => ({ id: r.id, name: r.name, type: r.type, activity: r.activity, date: r.date, venue: r.venue_id || '', format: r.format, attendees: +r.attendees, signups: +r.signups, cost: +r.cost, hours: +r.hours, startTime:r.start_time||'', endTime:r.end_time||'', details:r.details||'' }),
+      to: (e) => ({ id: e.id, name: e.name, type: e.type, activity: e.activity, date: e.date, venue_id: e.venue || null, format: e.format, attendees: +e.attendees || 0, signups: +e.signups || 0, cost: +e.cost || 0, hours: +e.hours || 0, ...(EVENT_SCHEDULE_SUPPORTED?{start_time:e.startTime||null,end_time:e.endTime||null,details:e.details||''}:{}) }) },
     lead_counts: { coll: 'counts', key: 'id',
       from: (r) => ({ id: r.id, month: r.month, via: r.via, source: r.source, credit: r.credit_id || '', leads: +r.leads, consults: +r.consults, converted: +r.converted, revenue: +r.revenue }),
       to: (c) => ({ month: c.month, via: c.via, source: c.source, credit_id: c.credit || '', leads: +c.leads || 0, consults: +c.consults || 0, converted: +c.converted || 0, revenue: +c.revenue || 0 }) },
@@ -84,6 +110,11 @@
     DATA = { partners: p.map(TABLES.partners.from), touches: t.map(TABLES.touches.from), events: e.map(TABLES.events.from), counts: c.map(TABLES.lead_counts.from),
       settings: s[0] ? { openDate: s[0].open_date, staffCost: +s[0].staff_cost } : EMPTY().settings, team: m.map(TABLES.team_members.from) };
     me = DATA.team.find((x) => x.email === (session.user.email || '').toLowerCase()) || null;
+    try{
+      const probe=await db.from('events').select('start_time,end_time,details').limit(1);
+      EVENT_SCHEDULE_SUPPORTED=!probe.error;
+    }catch(_){EVENT_SCHEDULE_SUPPORTED=false;}
+
   }
   function subscribe() {
     db.channel('torus-live').on('postgres_changes', { event: '*', schema: 'public' }, (msg) => {
@@ -186,7 +217,7 @@
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const opts = (list, sel) => list.map((o) => { const [v, l] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(v)}"${v === sel ? ' selected' : ''}>${esc(l)}</option>`; }).join('');
   const view = $('[data-view]');
-  const ui = { state: 'ready', q: '', status: '', activity: '', via: '', pact: '', sort: 'next', dir: 1, range: 90, prange: 'all', month: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1), calSelected:iso(TODAY), todaySelected:'', pipelinePage:0, calMode:'month',calFilter:'all', pending: false, importRows: null };
+  const ui = { state: 'ready', q: '', status: '', activity: '', via: '', pact: '', sort: 'next', dir: 1, range: 90, prange: 'all', month: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1), calSelected:iso(TODAY), todaySelected:'', pipelinePage:0, calMode:PREFS.defaultView,calRecord:'',calFilter:'all', pending: false, importRows: null };
   let lastFocus = null;
 
   const ICON = {
@@ -369,9 +400,10 @@
       const inMonth=x=>parse(x.date).getMonth()===m.getMonth()&&parse(x.date).getFullYear()===m.getFullYear();
       const monthItems=items.filter(inMonth).sort((a,b)=>a.date.localeCompare(b.date));
       const dayItems=items.filter(x=>x.date===selected);
+      const selectedRecord=dayItems.find(x=>(x.kind+':'+x.id)===ui.calRecord)||null;
       const start=new Date(m.getFullYear(),m.getMonth(),1);
-      start.setDate(1-start.getDay());
-      const weekStart=parse(selected);weekStart.setDate(weekStart.getDate()-weekStart.getDay());
+      start.setDate(1-((start.getDay()+(PREFS.weekStart==='monday'?6:0))%7));
+      const weekStart=parse(selected);weekStart.setDate(weekStart.getDate()-((weekStart.getDay()+(PREFS.weekStart==='monday'?6:0))%7));
       const origin=mode==='week'?weekStart:start;
       const cells=Array.from({length:mode==='week'?7:42},(_,i)=>{
         const dt=new Date(origin.getFullYear(),origin.getMonth(),origin.getDate()+i),key=iso(dt);
@@ -379,24 +411,24 @@
       });
       const title=m.toLocaleDateString('en-US',{month:'long',year:'numeric'});
       const formatRow=x=>`<div class="cal-entry"><i class="cal-entry-icon ${x.kind}"></i>
-        <div class="cal-entry-copy"><a href="${esc(x.href)}">${esc(x.label)}</a><small>${esc(x.sub)}</small></div>
+        <div class="cal-entry-copy"><button type="button" class="cal-entry-link" data-cal-open="${x.kind+":"+x.id}" data-cal-date="${x.date}">${esc(x.label)}</button><small>${esc(x.sub)}</small></div>
         <button type="button" class="cal-entry-edit" data-act="${x.kind==='event'?'edit-event':'edit-partner'}" data-id="${esc(x.id)}" aria-label="Edit ${esc(x.label)}">Edit</button>
       </div>`;
       const renderCell=c=>`<div role="gridcell" data-cal-cell="${c.key}" class="cal-cell${c.dt.getMonth()!==m.getMonth()?' is-outside':''}${c.key===iso(TODAY)?' is-today':''}${c.key===selected?' is-selected':''}" aria-selected="${c.key===selected}">
         <button class="cal-date" type="button" data-cal-day="${c.key}" aria-label="Select ${esc(c.dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}))}, ${c.items.length} scheduled"><span>${c.dt.getDate()}</span><small>${c.items.length||''}</small></button>
-        <div class="cal-items">${c.items.slice(0,mode==='week'?6:3).map(x=>`<a class="cal-chip ${x.kind}${x.late?' late':''}" href="${esc(x.href)}" title="${esc(x.label)} — ${esc(x.sub)}"><i></i><span>${esc(x.label)}</span></a>`).join('')}${c.items.length>(mode==='week'?6:3)?`<button type="button" class="cal-more" data-cal-day="${c.key}">+${c.items.length-(mode==='week'?6:3)} more</button>`:''}</div>
+        <div class="cal-items">${c.items.slice(0,mode==='week'?6:3).map(x=>`<button type="button" class="cal-chip ${x.kind}${x.late?' late':''}" data-cal-open="${x.kind+":"+x.id}" data-cal-date="${x.date}" title="${esc(x.label)} — ${esc(x.sub)}"><i></i><span>${esc(x.label)}</span></button>`).join('')}${c.items.length>(mode==='week'?6:3)?`<button type="button" class="cal-more" data-cal-day="${c.key}">+${c.items.length-(mode==='week'?6:3)} more</button>`:''}</div>
         <div class="cal-mobile-dots">${c.items.slice(0,4).map(x=>`<i class="${x.kind}"></i>`).join('')}</div>
       </div>`;
       const titleDate=fmt(selected,{weekday:'long',month:'long',day:'numeric'});
       const list=mode==='agenda'
         ? `<div class="cal-list">${monthItems.length?monthItems.map(x=>`<div class="cal-list-row"><time datetime="${x.date}">${esc(fmt(x.date,{weekday:'short',month:'short',day:'numeric'}))}</time>${formatRow(x)}</div>`).join(''):'<p class="cal-empty">No items scheduled this month.</p>'}</div>`
         : `<div class="cal-grid ${mode==='week'?'cal-week-view':''}" role="grid" aria-label="${esc(title)}">
-          ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(x=>`<div class="cal-weekday" role="columnheader">${x}</div>`).join('')}${cells.map(renderCell).join('')}</div>`;
+          ${(PREFS.weekStart==='monday'?['Mon','Tue','Wed','Thu','Fri','Sat','Sun']:['Sun','Mon','Tue','Wed','Thu','Fri','Sat']).map(x=>`<div class="cal-weekday" role="columnheader">${x}</div>`).join('')}${cells.map(renderCell).join('')}</div>`;
       return `<section class="calendar-suite" aria-label="Torus calendar">
         <div class="cal-header">
           <div><span class="cal-eyebrow">Calendar · Cycles &amp; connections</span><h1>${esc(title)}</h1><p>${monthItems.length} scheduled · ${monthItems.filter(x=>x.kind==='follow').length} follow-ups · ${monthItems.filter(x=>x.kind==='event').length} events</p></div>
           <div class="cal-header-actions">
-            <div class="cal-month-nav" role="group" aria-label="Navigate months"><button type="button" data-month="-1" aria-label="Previous month">‹</button><button type="button" data-month="0">Today</button><button type="button" data-month="1" aria-label="Next month">›</button></div>
+            <div class="cal-month-nav" role="group" aria-label="Return to current month"><button type="button" data-month="0">Today</button></div>
             <button type="button" class="btn primary" data-act="calendar-add-event">+ New event</button><span class="page-theme-slot" data-theme-slot></span>
           </div>
         </div>
@@ -406,9 +438,14 @@
           <button type="button" class="cal-export" data-act="calendar-export">Export to Sheets · CSV ↗</button>
         </div>
         <div class="cal-layout">
-          <div class="cal-month-panel">${list}</div>
+          <div class="cal-month-panel">
+            <div class="cal-period-bar" role="group" aria-label="Navigate calendar months">
+              <button type="button" data-month="-1" aria-label="Previous calendar month">‹ <span>Previous month</span></button>
+              <strong aria-live="polite">${esc(title)}</strong>
+              <button type="button" data-month="1" aria-label="Next calendar month"><span>Next month</span> ›</button>
+            </div>${list}</div>
           <aside class="cal-day-panel"><span class="cal-eyebrow">Day agenda</span><h3>${esc(titleDate)}</h3><p>${dayItems.length} scheduled</p>
-            <div class="cal-day-list">${dayItems.length?dayItems.map(formatRow).join(''):'<div class="cal-empty">A clear day. Select a date to see its schedule.</div>'}</div>
+            <div class="cal-day-list">${selectedRecord?calendarRecordSummary(selectedRecord):dayItems.length?dayItems.map(formatRow).join(''):'<div class="cal-empty">A clear day. Select a date to see its schedule.</div>'}</div>
             <button type="button" class="cal-add-day" data-act="calendar-add-event">+ Add event on this day</button>
           </aside>
         </div>
@@ -418,28 +455,60 @@
 
     setup() {
       const isAdmin = !LIVE || me?.role === 'admin';
-      return `<div class="bento settings-grid">
-        <section class="card span-6 settings-card settings-practice"><h2>Practice settings</h2><p class="muted" style="margin:var(--space-1) 0 var(--space-4)">These drive the playbook's 30/60/90-day targets and the cost side of the return figures.</p>
+      return `<div class="settings-shell">
+        <div class="settings-page-intro"><div><span class="settings-eyebrow">Torus · Operations</span><h1>Workspace settings</h1><p>Configure your practice, review team access, and tune your personal workspace.</p></div><div class="settings-page-controls"><span class="settings-status">${LIVE?'Team-connected':'Demo workspace'}</span><span class="page-theme-slot" data-theme-slot></span></div></div>
+        <div class="settings-columns">
+          <div class="settings-column">
+            <section class="card span-6 settings-card settings-practice"><h2>Practice settings</h2><p class="muted" style="margin:var(--space-1) 0 var(--space-4)">These drive the playbook's 30/60/90-day targets and the cost side of the return figures.</p>
           <form class="grid" data-form="settings" novalidate>
             <label class="field-label">Practice opening date<input class="field" type="date" name="openDate" value="${esc(DATA.settings.openDate)}" required></label>
             <label class="field-label">Staff time cost (dollars per hour)<input class="field" type="number" min="0" step="5" name="staffCost" value="${DATA.settings.staffCost}" required aria-describedby="err-staffCost"><span class="err" id="err-staffCost" role="alert"></span></label>
             <div><button class="btn primary">Save settings</button></div></form></section>
-        <section class="card span-6 settings-card settings-connection"><h2>Data connection</h2>
-          ${LIVE ? `<p style="margin:var(--space-2) 0"><span class="chip success">Live</span> Saved to the Torus database. Changes appear on every open screen.</p><p class="muted">Signed in as ${esc(session?.user?.email)}${me ? ` · ${esc(me.role)}` : ''}.</p>`
-            : `<p style="margin:var(--space-2) 0"><span class="chip warning">Demo</span> Sample data only. Changes last until you close the page.</p><p class="muted">To go live, add the Supabase URL and anon key to Vercel. The steps are in docs/SETUP.md in the repo.</p>`}
-          <p class="muted" style="margin-top:var(--space-3)">Patient leads are stored as monthly counts only. Patient details stay in IntakeQ.</p></section>
-        <section class="card span-6 settings-card settings-team"><h2>Team</h2><p class="muted" style="margin:var(--space-1) 0 var(--space-4)">Only these emails can sign in and see Torus data.${isAdmin ? '' : ' Ask an admin to add someone.'}</p>
-          <div class="rows">${withState(DATA.team, { msg: LIVE ? 'No team members yet.' : 'The team list appears here once the database is connected.' }, (items) => items.map((m) => `<div class="row" style="cursor:default"><span><span class="row-title">${esc(m.name || m.email)}</span><small>${esc(m.email)} · ${esc(m.role)}</small></span>${isAdmin && LIVE && m.email !== session?.user?.email ? `<button class="btn small" data-act="remove-member" data-id="${esc(m.email)}">Remove ${esc(m.name || m.email)}</button>` : ''}</div>`).join(''))}</div>
-          ${LIVE && isAdmin ? `<form class="form-grid" data-form="member" novalidate style="margin-top:var(--space-4)"><label class="field-label">Email<input class="field" type="email" name="email" required aria-describedby="err-email"><span class="err" id="err-email" role="alert"></span></label><label class="field-label">Name<input class="field" name="name"></label><label class="field-label">Role<select class="field" name="role">${opts([['member', 'Member'], ['admin', 'Admin']])}</select></label><div class="full"><button class="btn primary">Add team member</button></div></form>` : ''}</section>
-        <section class="card span-6 settings-card settings-lists"><h2>Dropdown lists</h2><p class="muted" style="margin:var(--space-1) 0 var(--space-4)">Same wording as the playbook and the IntakeQ form. Keep the referral sources identical to the form.</p>
+            <section class="card settings-card settings-preferences">
+ <div class="settings-section-head"><span class="settings-eyebrow">Personal workspace</span><h2>Calendar & display preferences</h2></div>
+ <p class="muted">Saved on this browser only. Each control changes how this dashboard behaves.</p>
+ <div class="settings-control-list">
+   <label class="field-label">First day of calendar week<select class="field" data-pref="weekStart">${opts([['sunday','Sunday'],['monday','Monday']],PREFS.weekStart)}</select></label>
+   <label class="field-label">Default calendar layout<select class="field" data-pref="defaultView">${opts([['month','Month'],['week','Week'],['agenda','Agenda']],PREFS.defaultView)}</select></label>
+   <label class="field-label">Information density<select class="field" data-pref="density">${opts([['comfortable','Comfortable'],['compact','Compact']],PREFS.density)}</select></label>
+   <label class="field-label">Sacred geometry motion<select class="field" data-pref="motion">${opts([['ambient','Ambient animation'],['reduced','Still until interacted with']],PREFS.motion)}</select></label>
+ </div>
+ <div class="settings-card-actions"><button class="btn small" type="button" data-act="prefs-reset">Reset display preferences</button><span class="settings-autosave">Changes save automatically on this browser</span></div>
+</section>
+            <section class="card span-6 settings-card settings-lists"><h2>Dropdown lists</h2><p class="muted" style="margin:var(--space-1) 0 var(--space-4)">Same wording as the playbook and the IntakeQ form. Keep the referral sources identical to the form.</p>
           <div class="settings-lists-stack">
           ${settingsList('Pipeline stages',STAGES)}
           ${settingsList('Referral sources',SOURCES)}
           ${settingsList('Came in via',CHANNELS)}
           ${settingsList('Packages (illustrative)',Object.entries(PACKAGES).filter(([k])=>k!=='None yet').map(([k,v])=>k+' · '+(v?money(v):'Insurance')))}
           </div></section>
-        <section class="card span-6 settings-card settings-preview"><h2>Preview a data state</h2><p class="muted" style="margin:var(--space-1) 0 var(--space-4)">For reviewing the design. Every list and chart can show each of these.</p>
+          </div>
+          <div class="settings-column">
+            <section class="card span-6 settings-card settings-connection"><h2>Data connection</h2>
+          ${LIVE ? `<p style="margin:var(--space-2) 0"><span class="chip success">Live</span> Saved to the Torus database. Changes appear on every open screen.</p><p class="muted">Signed in as ${esc(session?.user?.email)}${me ? ` · ${esc(me.role)}` : ''}.</p>`
+            : `<p style="margin:var(--space-2) 0"><span class="chip warning">Demo</span> Sample data only. Changes last until you close the page.</p><p class="muted">To go live, add the Supabase URL and anon key to Vercel. The steps are in docs/SETUP.md in the repo.</p>`}
+          <p class="muted" style="margin-top:var(--space-3)">Patient leads are stored as monthly counts only. Patient details stay in IntakeQ.</p></section>
+            <section class="card span-6 settings-card settings-team"><h2>Team</h2><p class="muted" style="margin:var(--space-1) 0 var(--space-4)">Only these emails can sign in and see Torus data.${isAdmin ? '' : ' Ask an admin to add someone.'}</p>
+          <div class="rows">${withState(DATA.team, { msg: LIVE ? 'No team members yet.' : 'The team list appears here once the database is connected.' }, (items) => items.map((m) => `<div class="row" style="cursor:default"><span><span class="row-title">${esc(m.name || m.email)}</span><small>${esc(m.email)} · ${esc(m.role)}</small></span>${isAdmin && LIVE && m.email !== session?.user?.email ? `<button class="btn small" data-act="remove-member" data-id="${esc(m.email)}">Remove ${esc(m.name || m.email)}</button>` : ''}</div>`).join(''))}</div>
+          ${LIVE && isAdmin ? `<form class="form-grid" data-form="member" novalidate style="margin-top:var(--space-4)"><label class="field-label">Email<input class="field" type="email" name="email" required aria-describedby="err-email"><span class="err" id="err-email" role="alert"></span></label><label class="field-label">Name<input class="field" name="name"></label><label class="field-label">Role<select class="field" name="role">${opts([['member', 'Member'], ['admin', 'Admin']])}</select></label><div class="full"><button class="btn primary">Add team member</button></div></form>` : ''}</section>
+            <section class="card settings-card settings-integrations">
+  <div class="settings-section-head"><span class="settings-eyebrow">Connected workflows</span><h2>Integrations & data safety</h2></div>
+  <div class="settings-integrations-list">
+    <div class="settings-integration"><span><b>Database & team</b><small>${LIVE?'Live · Supabase realtime enabled':'Demo · fictional in-browser data'}</small></span><span class="settings-status ${LIVE?'online':'demo'}">${LIVE?'Connected':'Demo'}</span></div>
+    <div class="settings-integration"><span><b>IntakeQ counts</b><small>Import aggregated leads, not patient identities</small></span><button class="btn small" type="button" data-act="import">Import CSV</button></div>
+    <div class="settings-integration"><span><b>Google Sheets</b><small>Calendar CSV export works; live two-way sync is not connected</small></span><button class="btn small" type="button" data-act="calendar-export">Export CSV</button></div>
+    <div class="settings-integration"><span><b>Event scheduling fields</b><small>${EVENT_SCHEDULE_SUPPORTED?'Time and event notes are supported by the current schema':'Database migration needed for start/end time and notes'}</small></span><span class="settings-status ${EVENT_SCHEDULE_SUPPORTED?'online':'demo'}">${EVENT_SCHEDULE_SUPPORTED?'Ready':'Not enabled'}</span></div>
+  </div>
+  <p class="settings-privacy-note">Appointment notes must stay business-focused. Patient details remain in IntakeQ. Credentials and patient data must never be embedded in this public dashboard.</p>
+</section>
+            <section class="card span-6 settings-card settings-preview"><h2>Preview a data state</h2><p class="muted" style="margin:var(--space-1) 0 var(--space-4)">For reviewing the design. Every list and chart can show each of these.</p>
           <label class="field-label">Data state<select class="field" data-state>${opts([['ready', 'Populated'], ['loading', 'Loading'], ['empty', 'Empty'], ['error', 'Error']], ui.state)}</select></label></section>
+            <section class="card settings-card settings-shortcuts">
+  <div class="settings-section-head"><span class="settings-eyebrow">Workspace</span><h2>Quick access</h2></div>
+  <nav class="settings-links" aria-label="Quick links"><a href="#calendar">Open calendar <span>↗</span></a><a href="#partners">Manage partners <span>↗</span></a><a href="#events">Review events <span>↗</span></a><a href="#sources">Sources &amp; ROI <span>↗</span></a></nav>
+</section>
+          </div>
+        </div>
       </div>`;
     },
   };
@@ -452,9 +521,46 @@
   }
 
 
+  function calendarRecordSummary(x) {
+    if(!x)return '';
+    const isEvent=x.kind==='event', record=isEvent?eventById(x.id):partner(x.id);
+    if(!record)return '';
+    const association=isEvent?partner(record.venue):null;
+    const fields=isEvent?[
+      ['When',fmt(record.date,{weekday:'long',month:'long',day:'numeric'})+(record.startTime?' · '+record.startTime+(record.endTime?'–'+record.endTime:''):'')],
+      ['Format',record.format||'Not specified'],
+      ['Type',record.type||'Not specified'],
+      ['Related partner / venue',association?association.contact+' · '+association.org:'Not linked'],
+      ['Activity',act(record.activity).name],
+      ['Attendance / waitlist',(record.attendees||0)+' attendees · '+(record.signups||0)+' signups']
+    ]:[
+      ['Scheduled follow-up',fmt(record.next,{weekday:'long',month:'long',day:'numeric'})],
+      ['Practice',record.org||'Not specified'],
+      ['Relationship status',record.status||'Not specified'],
+      ['BD activity',act(record.activity).name],
+      ['Next step',record.nextStep||'No next step entered'],
+      ['Owner',record.owner||'Torus team'],
+      ...(record.phone?[['Phone',record.phone]]:[])
+    ];
+    const href=(isEvent?'#event-':'#partner-')+record.id;
+    const action=isEvent?'edit-event':'edit-partner';
+    return `<div class="cal-record-summary" aria-live="polite">
+      <div class="cal-record-top"><span class="cal-record-type">${isEvent?'Event':'Partner follow-up'}</span>
+        <button type="button" class="cal-record-back" data-cal-back aria-label="Back to selected day's agenda">×</button></div>
+      <h3>${esc(isEvent?record.name:record.contact)}</h3>
+      <p class="cal-record-intro">${esc(isEvent?(record.details||'Education and community engagement'):record.org||'Partner relationship')}</p>
+      <dl class="cal-record-facts">${fields.map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+      <div class="cal-record-actions">
+        <button type="button" class="btn primary" data-act="${action}" data-id="${esc(record.id)}">Edit details</button>
+        <a class="cal-record-link" href="${esc(href)}">${isEvent?'Open full event':'Open partner profile'} ↗</a>
+      </div>
+      ${association?`<p class="cal-record-associated"><a href="#partner-${esc(association.id)}">Partner details: ${esc(association.contact)} ↗</a></p>`:''}
+    </div>`;
+  }
+
   function calendarItems() {
     return [...DATA.partners.filter(p=>p.next&&p.status!=='Not a fit').map(p=>({date:p.next,kind:'follow',id:p.id,late:overdue(p),label:p.contact,sub:p.nextStep||p.org,href:'#partner-'+p.id})),
-      ...DATA.events.map(e=>({date:e.date,kind:'event',id:e.id,late:false,label:e.name,sub:(e.type||'Event')+' · '+e.format,href:'#event-'+e.id}))];
+      ...DATA.events.map(e=>({date:e.date,kind:'event',id:e.id,late:false,label:e.name,sub:(e.startTime?e.startTime+' · ':'')+(e.type||'Event')+' · '+(e.format||'In-person'),href:'#event-'+e.id}))];
   }
   function downloadCalendarCSV() {
     const rows=[['Date','Type','Title','Details','Record ID'],...calendarItems().sort((a,b)=>a.date.localeCompare(b.date)).map(x=>[x.date,x.kind==='event'?'Event':'Follow-up',x.label,x.sub,x.id])];
@@ -481,7 +587,7 @@
   function miniCalendar(upcoming) {
     const m=ui.month;
     const first=new Date(m.getFullYear(),m.getMonth(),1);
-    const start=new Date(m.getFullYear(),m.getMonth(),1-first.getDay());
+    const start=new Date(m.getFullYear(),m.getMonth(),1-((first.getDay()+(PREFS.weekStart==='monday'?6:0))%7));
     const records=[
       ...DATA.partners.filter(p=>p.next&&p.status!=='Not a fit').map(p=>({date:p.next,kind:'follow'})),
       ...DATA.events.map(e=>({date:e.date,kind:'event'}))
@@ -501,7 +607,7 @@
       <div class="card-head"><h2>Calendar</h2><a href="#calendar">Full calendar</a></div>
       <div class="today-mini-controls"><div><b>${esc(m.toLocaleDateString('en-US',{month:'long',year:'numeric'}))}</b><small>Follow-ups &amp; community events</small></div>
       <div class="today-mini-month-actions"><button class="today-mini-month-btn" type="button" data-month="-1" aria-label="Previous month">‹</button><button class="today-mini-month-btn is-now" type="button" data-month="0" aria-label="Back to current month">Today</button><button class="today-mini-month-btn" type="button" data-month="1" aria-label="Next month">›</button></div></div>
-      <div class="today-mini-grid" role="group" aria-label="${esc(m.toLocaleDateString('en-US',{month:'long',year:'numeric'}))} days">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<span class="today-weekday">${d}</span>`).join('')}${cells}</div>
+      <div class="today-mini-grid" role="group" aria-label="${esc(m.toLocaleDateString('en-US',{month:'long',year:'numeric'}))} days">${(PREFS.weekStart==='monday'?['Mon','Tue','Wed','Thu','Fri','Sat','Sun']:['Sun','Mon','Tue','Wed','Thu','Fri','Sat']).map(d=>`<span class="today-weekday">${d}</span>`).join('')}${cells}</div>
       <div class="today-mini-footer"><span class="today-mini-legend"><i class="follow"></i> Follow-up <i class="event"></i> Event</span><a href="#calendar">View schedule <span aria-hidden="true">↗</span></a></div>
       <div class="today-mini-agenda" data-today-agenda aria-live="polite">${miniDayDetails(ui.todaySelected)}</div><div class="today-upcoming"><div class="today-upcoming-label">Up next</div>${upcomingList||'<p class="muted">No upcoming events scheduled.</p>'}</div></section>`;
   }
@@ -549,19 +655,41 @@
         ${actions.replace('BUTTON', '<button class="btn primary">Save touch</button>')}</form>`);
   }
   function eventForm(e = {}) {
-    openDrawer(`<h2 id="drawer-title">${e.id ? 'Update event results' : 'Plan an event'}</h2>
-      <form class="form-grid" data-form="event" data-id="${esc(e.id || '')}" novalidate>
-        <label class="field-label full">Event name<input class="field" name="name" value="${esc(e.name)}" required aria-describedby="err-name"><span class="err" id="err-name" role="alert"></span></label>
-        <label class="field-label">Type<select class="field" name="type">${opts(EVENT_TYPES, e.type)}</select></label>
-        <label class="field-label">Date<input class="field" type="date" name="date" value="${esc(e.date || iso(d(21)))}" required></label>
-        <label class="field-label">BD activity<select class="field" name="activity">${opts([['A4', '4 · Community events'], ['A3', '3 · Provider education'], ['A1', '1 · Practice partnerships'], ['A2', '2 · Spravato insurance track'], ['A5', "5 · Shari's physician network"]], e.activity)}</select></label>
-        <label class="field-label">Format<select class="field" name="format">${opts(['In-person', 'Virtual (Zoom)'], e.format)}</select></label>
-        <label class="field-label full">Venue<select class="field" name="venue"><option value="">Torus / online</option>${opts(DATA.partners.filter((p) => p.type === 'Community venue').map((p) => [p.id, p.org]), e.venue)}</select></label>
-        <label class="field-label">Attendees<input class="field" type="number" min="0" name="attendees" value="${e.attendees || 0}"></label>
-        <label class="field-label">Waitlist signups<input class="field" type="number" min="0" name="signups" value="${e.signups || 0}" aria-describedby="err-signups"><span class="err" id="err-signups" role="alert"></span></label>
-        <label class="field-label">Cash cost ($)<input class="field" type="number" min="0" name="cost" value="${e.cost || 0}"></label>
-        <label class="field-label">Hours spent<input class="field" type="number" min="0" step="0.5" name="hours" value="${e.hours || 0}"></label>
-        ${actions.replace('BUTTON', `<button class="btn primary">${e.id ? 'Save results' : 'Add event'}</button>`)}</form>`);
+    const rel=DATA.partners.slice().sort((a,b)=>a.contact.localeCompare(b.contact));
+    const partnerOptions=opts(rel.map(p=>[p.id,p.contact+' · '+p.org]),e.venue);
+    const extra=EVENT_SCHEDULE_SUPPORTED?`
+      <label class="field-label">Start time<input class="field" type="time" name="startTime" value="${esc(e.startTime||'')}"></label>
+      <label class="field-label">End time<input class="field" type="time" name="endTime" value="${esc(e.endTime||'')}" aria-describedby="err-endTime"><span class="err" id="err-endTime" role="alert"></span></label>
+      <label class="field-label full">Agenda / logistics notes <small>No patient details</small><textarea class="field" maxlength="1800" name="details" rows="3" placeholder="Purpose, preparation, arrival instructions or call link (no patient data)">${esc(e.details||'')}</textarea></label>
+      `:`<p class="event-schema-notice">Optional start/end times and agenda notes require the calendar scheduling migration. Existing events, linked partners and outcomes continue saving to Supabase.</p>`;
+    openDrawer(`<div class="event-drawer-head">
+      <span class="event-drawer-kicker">Torus · Events & education</span>
+      <h2 id="drawer-title">${e.id?'Edit event':'Plan an event'}</h2>
+      <p>${e.id?'Update the schedule, partner link and results.':'Organize the date, related partner, and purpose. Record outcomes after the event.'}</p>
+      </div>
+      <form class="form-grid event-form" data-form="event" data-id="${esc(e.id||'')}" novalidate>
+        <fieldset class="event-form-section"><legend><span>01</span> Event essentials</legend>
+          <div class="event-field-grid">
+            <label class="field-label full">Event title<input class="field" name="name" value="${esc(e.name)}" required placeholder="e.g. Community education evening" aria-describedby="err-name"><span class="err" id="err-name" role="alert"></span></label>
+            <label class="field-label">Event date<input class="field" type="date" name="date" value="${esc(e.date||ui.calSelected||iso(d(21)))}" required></label>
+            <label class="field-label">Event type<select class="field" name="type">${opts(EVENT_TYPES,e.type)}</select></label>
+            <label class="field-label">Format<select class="field" name="format">${opts(['In-person','Virtual (Zoom)'],e.format)}</select></label>
+            <label class="field-label">Business development focus<select class="field" name="activity">${opts([['A4','Community events'],['A3','Provider education'],['A1','Practice partnerships'],['A2','Spravato insurance track'],['A5',"Shari's network"]],e.activity)}</select></label>
+            <label class="field-label full">Related partner or host<select class="field" name="venue"><option value="">No linked organization</option>${partnerOptions}</select><small>Uses the existing linked partner/venue record. Opens directly from the calendar summary.</small></label>
+            ${extra}
+          </div>
+        </fieldset>
+        <fieldset class="event-form-section"><legend><span>02</span> Participation & outcomes</legend>
+          <p class="event-section-note">Enter the results once the event has happened; all fields may start at zero.</p>
+          <div class="event-field-grid">
+            <label class="field-label">Attendees<input class="field" type="number" min="0" step="1" name="attendees" value="${e.attendees||0}"></label>
+            <label class="field-label">Waitlist signups<input class="field" type="number" min="0" step="1" name="signups" value="${e.signups||0}" aria-describedby="err-signups"><span class="err" id="err-signups" role="alert"></span></label>
+            <label class="field-label">Cash cost ($)<input class="field" type="number" min="0" step="1" name="cost" value="${e.cost||0}"></label>
+            <label class="field-label">Team hours<input class="field" type="number" min="0" step="0.5" name="hours" value="${e.hours||0}"></label>
+          </div>
+        </fieldset>
+        <div class="event-form-submit">${actions.replace('BUTTON',`<button class="btn primary">${e.id?'Save event':'Add event'}</button>`)}</div>
+      </form>`);
   }
   function countsForm(c = {}) {
     openDrawer(`<h2 id="drawer-title">${c.id ? 'Edit counts' : 'Add counts'}</h2><p class="muted">Totals for one month, channel, source and credit. No patient details.</p>
@@ -685,13 +813,22 @@
 
   /* ---------------- Events ---------------- */
   document.addEventListener('click', async (e) => {
-    if(e.target.closest('.cal-cell a[href]')) return;
-    const t = e.target.closest('[data-act],[data-sort],[data-range],[data-prange],[data-month],[data-cal-day],[data-cal-cell],[data-mini-day],[data-mini-close],[data-pipeline-page],[data-pipeline-jump],[data-cal-mode],[data-cal-filter],tr[data-href]');
+
+    const t = e.target.closest('[data-cal-open],[data-cal-back],[data-act],[data-sort],[data-range],[data-prange],[data-month],[data-cal-day],[data-cal-cell],[data-mini-day],[data-mini-close],[data-pipeline-page],[data-pipeline-jump],[data-cal-mode],[data-cal-filter],tr[data-href]');
     if (!t) { if (e.target.matches('[data-drawer]')) closeDrawer(); return; }
     if (t.matches('tr[data-href]')) { if (!e.target.closest('a,button,select')) location.hash = t.dataset.href; return; }
     if (t.dataset.sort) { ui.dir = ui.sort === t.dataset.sort ? -ui.dir : 1; ui.sort = t.dataset.sort; rerender(); return; }
     if (t.dataset.range) { ui.range = t.dataset.range === 'all' ? 'all' : +t.dataset.range; rerender(); return; }
     if (t.dataset.prange) { ui.prange = t.dataset.prange === 'all' ? 'all' : +t.dataset.prange; rerender(); return; }
+    if(t.dataset.calOpen){
+      e.preventDefault();
+      ui.calRecord=t.dataset.calOpen;
+      ui.calSelected=t.dataset.calDate||ui.calSelected;
+      const dt=parse(ui.calSelected);
+      ui.month=new Date(dt.getFullYear(),dt.getMonth(),1);
+      rerender();return;
+    }
+    if(t.hasAttribute('data-cal-back')){ui.calRecord='';rerender();return;}
     if(t.dataset.pipelinePage){
       const n=window.innerWidth<760?1:window.innerWidth<1190?2:3;
       ui.pipelinePage=Math.max(0,Math.min(Math.ceil(STAGES.length/n)-1,(ui.pipelinePage||0)+Number(t.dataset.pipelinePage)));
@@ -721,6 +858,7 @@
       return;
     }
     if(t.dataset.calCell){
+      ui.calRecord='';
       ui.calSelected=t.dataset.calCell;
       const dt=parse(ui.calSelected);ui.month=new Date(dt.getFullYear(),dt.getMonth(),1);
       rerender();return;
@@ -728,12 +866,14 @@
     if(t.dataset.calMode){ui.calMode=t.dataset.calMode;rerender();return;}
     if(t.dataset.calFilter){ui.calFilter=t.dataset.calFilter;rerender();return;}
     if(t.dataset.calDay){
+      ui.calRecord='';
       ui.calSelected=t.dataset.calDay;
       const dt=parse(ui.calSelected);ui.month=new Date(dt.getFullYear(),dt.getMonth(),1);
       if(t.getAttribute('href')==='#calendar')location.hash='#calendar';
       rerender();return;
     }
     if(t.dataset.month){
+      ui.calRecord='';
       const v=+t.dataset.month;ui.month=v===0?new Date(TODAY.getFullYear(),TODAY.getMonth(),1):new Date(ui.month.getFullYear(),ui.month.getMonth()+v,1);
       if(location.hash.includes('calendar'))ui.calSelected=v===0?iso(TODAY):iso(new Date(ui.month.getFullYear(),ui.month.getMonth(),1));
       rerender();return;
@@ -742,6 +882,9 @@
     try {
       if (a === 'calendar-add-event') eventForm({date:ui.calSelected||iso(TODAY)});
       else if (a === 'calendar-export') downloadCalendarCSV();
+      else if (a === 'prefs-reset'){
+        PREFS={...PREF_DEFAULTS};savePrefs();ui.calMode=PREFS.defaultView;rerender();toast('Display preferences reset');
+      }
       else if (a === 'add-partner') partnerForm();
       else if (a === 'edit-partner') partnerForm(partner(id));
       else if (a === 'log') touchForm(id);
@@ -780,7 +923,15 @@
     try {
       if (t.matches('[data-move]')) { const p = partner(t.dataset.move); await upsert('partners', { ...p, status: t.value }); rerender(); toast(`${p.contact} moved to ${t.value}`); }
       if (t.matches('[data-filter]')) { ui[t.dataset.filter] = t.value; rerender(`[data-filter="${t.dataset.filter}"]`); }
-      if (t.matches('[data-state]')) { ui.state = t.value; toast(`Every list now shows the ${t.options[t.selectedIndex].text.toLowerCase()} state`); }
+      if (t.matches('[data-pref]')){
+        const key=t.dataset.pref;
+        if(Object.hasOwn(PREF_DEFAULTS,key)){
+          PREFS={...PREFS,[key]:t.value};savePrefs();
+          if(key==='defaultView')ui.calMode=t.value;
+          rerender();toast('Display preference saved on this device');
+        }
+      }
+      if (t.matches('[data-state]')) { ui.state = t.value; const name=t.options[t.selectedIndex].text.toLowerCase();rerender();toast(`Preview is showing the ${name} state`); }
     } catch (err) { fail(err, 'move that partner'); rerender(); }
   });
   document.addEventListener('submit', async (e) => {
@@ -804,6 +955,11 @@
         if (need('name', 'Give the event a name.')) return;
         if (+v.signups > +v.attendees) { $('#err-signups').textContent = 'Signups can’t be more than attendees.'; f.signups.focus(); return; }
         const base = f.dataset.id ? eventById(f.dataset.id) : { id: nextId('E-', DATA.events) };
+        if(EVENT_SCHEDULE_SUPPORTED&&v.endTime&&(!v.startTime||v.endTime<=v.startTime)){
+          const el=f.querySelector('#err-endTime');
+          if(el)el.textContent='Set a start time and an end time after it.';
+          f.querySelector('[name="endTime"]').focus();return;
+        }
         await upsert('events', { ...base, ...v, attendees: +v.attendees, signups: +v.signups, cost: +v.cost, hours: +v.hours }); closeDrawer(); rerender(); toast(`${v.name} saved`);
       } else if (kind === 'counts') {
         if (+v.leads < 1) { $('#err-leads').textContent = 'Enter at least one lead.'; f.leads.focus(); return; }

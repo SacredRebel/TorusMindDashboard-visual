@@ -73,3 +73,7 @@ See [the V4 release and verification guide](EXPERIENCE-V4-RELEASE.md) for single
 
 ## Experience V5 — restraint and finish
 See [V5 polish and browser verification](EXPERIENCE-V5-POLISH.md). V5 fixes an actual top-of-page text parsing bug, tones down card wallpaper, smooths the Mandala green field, and improves the Add Partner drawer without changing CRM functionality.
+
+
+## Experience V6
+See [V6 calendar and settings guide](EXPERIENCE-V6-CALENDAR-OPERATIONS.md) for clear month navigation, side-panel appointment summaries, event form improvements, operational Settings and unboxed Mandala geometry.

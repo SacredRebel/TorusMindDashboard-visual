@@ -70,7 +70,7 @@ async def run():
         date=await future.locator('.cal-date').get_attribute('data-cal-day')
         await future.locator('.cal-date').click()
         follow=page.locator('.cal-day-panel .cal-entry').filter(has=page.locator('.cal-entry-icon.follow')).first
-        original=await follow.locator('.cal-entry-copy a').inner_text()
+        original=await follow.locator('.cal-entry-copy button').inner_text()
         await follow.locator('.cal-entry-edit').click()
         assert await page.locator('[data-form="partner"]').count()==1
         await page.locator('[data-form="partner"] [name="next"]').fill('2026-11-25')

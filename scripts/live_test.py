@@ -38,7 +38,7 @@ async def main():
     s = serve(); base = f"http://127.0.0.1:{s.server_address[1]}/"
     ok = lambda name, cond: print(("PASS " if cond else "FAIL ") + name)
     async with async_playwright() as p:
-        b = await p.chromium.launch(executable_path="/usr/bin/google-chrome")
+        b = await p.chromium.launch()
         # 1. Signed out -> sign-in screen, link request
         pg, errs = await page_for(b, base, "null")
         ok("sign-in screen shown", await pg.locator("text=Email me a sign-in link").count() == 1)

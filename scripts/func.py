@@ -9,7 +9,7 @@ threading.Thread(target=_srv.serve_forever, daemon=True).start()
 B = f"http://127.0.0.1:{_srv.server_address[1]}/index.html"
 async def main():
     async with async_playwright() as p:
-        b = await p.chromium.launch(executable_path="/usr/bin/google-chrome")
+        b = await p.chromium.launch()
         pg = await b.new_page(viewport={"width":1280,"height":900}); errs=[]
         await pg.route("**/config.js", lambda r: r.fulfill(body="window.TORUS_CONFIG = null;", content_type="application/javascript"))  # tests use the built-in sample data
         pg.on("pageerror", lambda e: errs.append(str(e)))
