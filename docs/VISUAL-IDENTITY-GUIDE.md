@@ -61,3 +61,7 @@ The v1 Torus branding, torus field, mandala, colors, sacred geometry, and naviga
 - Traced ocean photography appears as a **subtle triangle-masked accent** in the header and calendar, alongside the original sacred geometry; the body of the data remains opaque and readable.
 - The motion/material treatment follows `SacredRebel/dashboard-tools-`: `docs/design/02-rulebook.md`, `docs/design/07-showcase-patterns.md`, `docs/design/08-polish-standard.md`, `docs/design/09-motion-system.md`, `docs/calendars/02-calendar-ui-rules.md`. CSS-only transform/opacity hover, ~180–200ms, no exotic cursor or scroll hijacking, accessible click and reduced motion.
 - **Privacy:** the custom demo data files (`demo/torus-demo.json`, `dashboard/sample-upload.csv`) are excluded from this public fork's latest tree. The build emits a minimal demo `config.js`, leaving `sample.js` as the intentional fictional dataset. Historical Git commits may still contain inherited files and should be audited separately before treating the repository as permanently sanitized.
+
+
+## Experience V3
+See [CALENDAR-AND-EXPERIENCE-V3.md](CALENDAR-AND-EXPERIENCE-V3.md) for the new interactive calendar, corrected pipeline, hover-only logo motion, light/dark theme, live Supabase contract, and Google Sheets integration boundaries. Changes are additive, not a rebuild.

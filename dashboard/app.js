@@ -186,7 +186,7 @@
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const opts = (list, sel) => list.map((o) => { const [v, l] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(v)}"${v === sel ? ' selected' : ''}>${esc(l)}</option>`; }).join('');
   const view = $('[data-view]');
-  const ui = { state: 'ready', q: '', status: '', activity: '', via: '', pact: '', sort: 'next', dir: 1, range: 90, prange: 'all', month: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1), pending: false, importRows: null };
+  const ui = { state: 'ready', q: '', status: '', activity: '', via: '', pact: '', sort: 'next', dir: 1, range: 90, prange: 'all', month: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1), calSelected:iso(TODAY), calMode:'month',calFilter:'all', pending: false, importRows: null };
   let lastFocus = null;
 
   const ICON = {
@@ -312,8 +312,8 @@
     },
 
     pipeline() {
-      return `<p class="muted">Drag a card to a new column, or use "Move to". Partners marked "Not a fit" are hidden here.</p>
-        <div class="board" data-board>${STAGES.map((s) => { const items = DATA.partners.filter((p) => p.status === s);
+      return `<div class="pipeline-intro"><p>Move relationships forward by dragging a card or using <strong>Move to</strong>. The board scrolls horizontally; every change uses the same saved partner record.</p><div class="pipeline-controls"><small>Explore stages</small><button type="button" data-board-scroll="-1" aria-label="Scroll pipeline stages left">‹</button><button type="button" data-board-scroll="1" aria-label="Scroll pipeline stages right">›</button></div></div>
+        <div class="board" data-board aria-label="Relationship pipeline stages" tabindex="0">${STAGES.map((s) => { const items = DATA.partners.filter((p) => p.status === s);
         return `<section class="col" data-col="${esc(s)}" aria-label="${esc(s)}"><h2><span>${esc(s)}</span><span class="num">${items.length}</span></h2>
           ${items.map((p) => `<article class="tile" draggable="true" data-drag="${esc(p.id)}"><a href="#partner-${esc(p.id)}">${esc(p.contact)}</a><small>${esc(p.org)}</small>
             <div class="top-actions">${actChip(p.activity)}${p.next ? dueChip(p) : ''}</div>
@@ -351,17 +351,59 @@
         </div>`;
     },
 
+
     calendar() {
-      const m = ui.month, start = new Date(m.getFullYear(), m.getMonth(), 1 - m.getDay());
-      const items = [...DATA.partners.filter((p) => p.next && p.status !== 'Not a fit').map((p) => ({ date: p.next, kind: 'follow', late: overdue(p), label: p.contact, sub: p.nextStep, href: `#partner-${p.id}` })),
-        ...DATA.events.map((e) => ({ date: e.date, kind: 'event', label: e.name, sub: `${e.type || ''} · ${e.format}`, href: `#event-${e.id}` }))];
-      const cells = Array.from({ length: 42 }, (_, i) => { const dt = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i); const k = iso(dt); return { dt, k, items: items.filter((x) => x.date === k) }; });
-      const monthItems = items.filter((x) => parse(x.date).getMonth() === m.getMonth() && parse(x.date).getFullYear() === m.getFullYear()).sort((a, b) => a.date.localeCompare(b.date));
-      return `<div class="toolbar"><button class="btn small" data-month="-1" aria-label="Previous month">‹ Previous</button><h2 style="min-width:180px;text-align:center">${m.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2><button class="btn small" data-month="1" aria-label="Next month">Next ›</button><button class="btn small" data-month="0">This month</button>
-          <span class="legend" style="margin:0"><span><i class="dot" style="background:var(--accent)"></i>Follow-up</span><span><i class="dot" style="background:var(--danger)"></i>Overdue</span><span><i class="dot" style="background:var(--torus-solar-resin)"></i>Event</span></span></div>
-        <div class="cal" role="grid" aria-label="Month">${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((x) => `<div class="dow" role="columnheader">${x}</div>`).join('')}
-          ${cells.map((c) => `<div class="day${c.dt.getMonth() !== m.getMonth() ? ' out' : ''}${c.k === iso(TODAY) ? ' today' : ''}" role="gridcell"><span class="d">${c.dt.getDate()}</span>${c.items.slice(0, 3).map((x) => `<a class="ev ${x.kind}${x.late ? ' late' : ''}" href="${esc(x.href)}" title="${esc(x.label)}">${esc(x.label)}</a>`).join('')}${c.items.length > 3 ? `<small class="muted">+${c.items.length - 3} more</small>` : ''}</div>`).join('')}</div>
-        <section class="card agenda"><div class="rows">${withState(monthItems, { msg: 'Nothing scheduled this month.' }, (its) => its.map((x) => `<a class="row" href="${esc(x.href)}"><span><span class="row-title">${esc(x.label)}</span><small>${esc(x.sub)}</small></span><span class="chip ${x.late ? 'danger' : x.kind === 'event' ? 'warning' : ''}">${esc(fmt(x.date, { weekday: 'short', month: 'short', day: 'numeric' }))}</span></a>`).join(''))}</div></section>`;
+      const m=ui.month, selected=ui.calSelected||iso(TODAY);
+      const mode=ui.calMode||'month', filter=ui.calFilter||'all';
+      const items=calendarItems().filter(x=>filter==='all'||(filter==='events'?x.kind==='event':x.kind==='follow'));
+      const inMonth=x=>parse(x.date).getMonth()===m.getMonth()&&parse(x.date).getFullYear()===m.getFullYear();
+      const monthItems=items.filter(inMonth).sort((a,b)=>a.date.localeCompare(b.date));
+      const dayItems=items.filter(x=>x.date===selected);
+      const start=new Date(m.getFullYear(),m.getMonth(),1);
+      start.setDate(1-start.getDay());
+      const weekStart=parse(selected);weekStart.setDate(weekStart.getDate()-weekStart.getDay());
+      const origin=mode==='week'?weekStart:start;
+      const cells=Array.from({length:mode==='week'?7:42},(_,i)=>{
+        const dt=new Date(origin.getFullYear(),origin.getMonth(),origin.getDate()+i),key=iso(dt);
+        return {dt,key,items:items.filter(x=>x.date===key)};
+      });
+      const title=m.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+      const formatRow=x=>`<div class="cal-entry"><i class="cal-entry-icon ${x.kind}"></i>
+        <div class="cal-entry-copy"><a href="${esc(x.href)}">${esc(x.label)}</a><small>${esc(x.sub)}</small></div>
+        <button type="button" class="cal-entry-edit" data-act="${x.kind==='event'?'edit-event':'edit-partner'}" data-id="${esc(x.id)}" aria-label="Edit ${esc(x.label)}">Edit</button>
+      </div>`;
+      const renderCell=c=>`<div role="gridcell" class="cal-cell${c.dt.getMonth()!==m.getMonth()?' is-outside':''}${c.key===iso(TODAY)?' is-today':''}${c.key===selected?' is-selected':''}" aria-selected="${c.key===selected}">
+        <button class="cal-date" type="button" data-cal-day="${c.key}" aria-label="Select ${esc(c.dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}))}, ${c.items.length} scheduled"><span>${c.dt.getDate()}</span><small>${c.items.length||''}</small></button>
+        <div class="cal-items">${c.items.slice(0,mode==='week'?6:3).map(x=>`<a class="cal-chip ${x.kind}${x.late?' late':''}" href="${esc(x.href)}" title="${esc(x.label)} — ${esc(x.sub)}"><i></i><span>${esc(x.label)}</span></a>`).join('')}${c.items.length>(mode==='week'?6:3)?`<button type="button" class="cal-more" data-cal-day="${c.key}">+${c.items.length-(mode==='week'?6:3)} more</button>`:''}</div>
+        <div class="cal-mobile-dots">${c.items.slice(0,4).map(x=>`<i class="${x.kind}"></i>`).join('')}</div>
+      </div>`;
+      const titleDate=fmt(selected,{weekday:'long',month:'long',day:'numeric'});
+      const list=mode==='agenda'
+        ? `<div class="cal-list">${monthItems.length?monthItems.map(x=>`<div class="cal-list-row"><time datetime="${x.date}">${esc(fmt(x.date,{weekday:'short',month:'short',day:'numeric'}))}</time>${formatRow(x)}</div>`).join(''):'<p class="cal-empty">No items scheduled this month.</p>'}</div>`
+        : `<div class="cal-grid ${mode==='week'?'cal-week-view':''}" role="grid" aria-label="${esc(title)}">
+          ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(x=>`<div class="cal-weekday" role="columnheader">${x}</div>`).join('')}${cells.map(renderCell).join('')}</div>`;
+      return `<section class="calendar-suite" aria-label="Torus calendar">
+        <div class="cal-header">
+          <div><span class="cal-eyebrow">Cycles &amp; connections</span><h2>${esc(title)}</h2><p>${monthItems.length} scheduled · ${monthItems.filter(x=>x.kind==='follow').length} follow-ups · ${monthItems.filter(x=>x.kind==='event').length} events</p></div>
+          <div class="cal-header-actions">
+            <div class="cal-month-nav" role="group" aria-label="Navigate months"><button type="button" data-month="-1" aria-label="Previous month">‹</button><button type="button" data-month="0">Today</button><button type="button" data-month="1" aria-label="Next month">›</button></div>
+            <button type="button" class="btn primary" data-act="calendar-add-event">+ New event</button>
+          </div>
+        </div>
+        <div class="cal-tools">
+          <div class="cal-seg" role="group" aria-label="Calendar view">${[['month','Month'],['week','Week'],['agenda','Agenda']].map(([v,l])=>`<button type="button" data-cal-mode="${v}" aria-pressed="${mode===v}">${l}</button>`).join('')}</div>
+          <div class="cal-seg" role="group" aria-label="Calendar filters">${[['all','All'],['follow','Follow-ups'],['events','Events']].map(([v,l])=>`<button type="button" data-cal-filter="${v}" aria-pressed="${filter===v}">${l}</button>`).join('')}</div>
+          <button type="button" class="cal-export" data-act="calendar-export">Export to Sheets · CSV ↗</button>
+        </div>
+        <div class="cal-layout">
+          <div class="cal-month-panel">${list}</div>
+          <aside class="cal-day-panel"><span class="cal-eyebrow">Day agenda</span><h3>${esc(titleDate)}</h3><p>${dayItems.length} scheduled</p>
+            <div class="cal-day-list">${dayItems.length?dayItems.map(formatRow).join(''):'<div class="cal-empty">A clear day. Select a date to see its schedule.</div>'}</div>
+            <button type="button" class="cal-add-day" data-act="calendar-add-event">+ Add event on this day</button>
+          </aside>
+        </div>
+        <p class="cal-sync">${LIVE?'Live · changes save to Torus Supabase and update across signed-in screens.':'Demo · fictional sample data; edits are temporary.'} Download CSV for Google Sheets; two-way Sheets synchronization is not connected.</p>
+      </section>`;
     },
 
     setup() {
@@ -394,6 +436,19 @@
     return `<div class="score"><span>${esc(s.label)}<small>${esc(s.a === 'D' ? 'All sources' : act(s.a).name)} · target ${esc(tgt)}</small></span><span class="chip ${isMet(s) ? 'success' : ''}">${isMet(s) ? 'Met · ' : ''}${esc(show)}</span><div class="meter" aria-hidden="true"><i class="${isMet(s) ? 'met' : ''}" style="width:${w}%"></i></div></div>`;
   }
 
+
+  function calendarItems() {
+    return [...DATA.partners.filter(p=>p.next&&p.status!=='Not a fit').map(p=>({date:p.next,kind:'follow',id:p.id,late:overdue(p),label:p.contact,sub:p.nextStep||p.org,href:'#partner-'+p.id})),
+      ...DATA.events.map(e=>({date:e.date,kind:'event',id:e.id,late:false,label:e.name,sub:(e.type||'Event')+' · '+e.format,href:'#event-'+e.id}))];
+  }
+  function downloadCalendarCSV() {
+    const rows=[['Date','Type','Title','Details','Record ID'],...calendarItems().sort((a,b)=>a.date.localeCompare(b.date)).map(x=>[x.date,x.kind==='event'?'Event':'Follow-up',x.label,x.sub,x.id])];
+    const safe=v=>{const text=String(v??'');return /^[=+\-@]/.test(text)?"'"+text:text;};
+    const csv=rows.map(r=>r.map(v=>'"'+safe(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+    const url=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
+    const a=document.createElement('a');a.href=url;a.download='torus-calendar-'+iso(TODAY)+'.csv';
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
   function miniCalendar(upcoming) {
     const m=ui.month;
     const first=new Date(m.getFullYear(),m.getMonth(),1);
@@ -409,7 +464,7 @@
       const key=iso(d),items=byDate.get(key)||[];
       const off=d.getMonth()!==m.getMonth(),now=key===iso(TODAY);
       const name=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-      return `<a class="today-day${off?' is-outside':''}${now?' is-today':''}${items.length?' has-items':''}" href="#calendar" aria-label="${esc(name)}, ${items.length} scheduled" title="Open ${esc(name)} in calendar">
+      return `<a class="today-day${off?' is-outside':''}${now?' is-today':''}${items.length?' has-items':''}" href="#calendar" data-cal-day="${key}" aria-label="${esc(name)}, ${items.length} scheduled" title="Open ${esc(name)} in calendar">
         <span class="today-day-number">${d.getDate()}</span><span class="today-day-dots" aria-hidden="true">${items.slice(0,3).map(x=>`<i class="${x.kind}"></i>`).join('')}</span></a>`;
     }).join('');
     const upcomingList=upcoming.slice(0,1).map(e=>`<a class="today-upcoming-event" href="#event-${esc(e.id)}"><span class="today-event-mark" aria-hidden="true"></span><span><b>${esc(e.name)}</b><small>${esc(fmt(e.date,{weekday:'short',month:'short',day:'numeric'}))}</small></span><span aria-hidden="true">↗</span></a>`).join('');
@@ -601,16 +656,30 @@
 
   /* ---------------- Events ---------------- */
   document.addEventListener('click', async (e) => {
-    const t = e.target.closest('[data-act],[data-sort],[data-range],[data-prange],[data-month],tr[data-href]');
+    const t = e.target.closest('[data-act],[data-sort],[data-range],[data-prange],[data-month],[data-cal-day],[data-cal-mode],[data-cal-filter],tr[data-href]');
     if (!t) { if (e.target.matches('[data-drawer]')) closeDrawer(); return; }
     if (t.matches('tr[data-href]')) { if (!e.target.closest('a,button,select')) location.hash = t.dataset.href; return; }
     if (t.dataset.sort) { ui.dir = ui.sort === t.dataset.sort ? -ui.dir : 1; ui.sort = t.dataset.sort; rerender(); return; }
     if (t.dataset.range) { ui.range = t.dataset.range === 'all' ? 'all' : +t.dataset.range; rerender(); return; }
     if (t.dataset.prange) { ui.prange = t.dataset.prange === 'all' ? 'all' : +t.dataset.prange; rerender(); return; }
-    if (t.dataset.month) { const v = +t.dataset.month; ui.month = v === 0 ? new Date(TODAY.getFullYear(), TODAY.getMonth(), 1) : new Date(ui.month.getFullYear(), ui.month.getMonth() + v, 1); rerender(); return; }
+    if(t.dataset.calMode){ui.calMode=t.dataset.calMode;rerender();return;}
+    if(t.dataset.calFilter){ui.calFilter=t.dataset.calFilter;rerender();return;}
+    if(t.dataset.calDay){
+      ui.calSelected=t.dataset.calDay;
+      const dt=parse(ui.calSelected);ui.month=new Date(dt.getFullYear(),dt.getMonth(),1);
+      if(t.getAttribute('href')==='#calendar')location.hash='#calendar';
+      rerender();return;
+    }
+    if(t.dataset.month){
+      const v=+t.dataset.month;ui.month=v===0?new Date(TODAY.getFullYear(),TODAY.getMonth(),1):new Date(ui.month.getFullYear(),ui.month.getMonth()+v,1);
+      if(location.hash.includes('calendar'))ui.calSelected=v===0?iso(TODAY):iso(new Date(ui.month.getFullYear(),ui.month.getMonth(),1));
+      rerender();return;
+    }
     const a = t.dataset.act, id = t.dataset.id || (location.hash.match(/^#(?:partner|event)-(.+)$/) || [])[1];
     try {
-      if (a === 'add-partner') partnerForm();
+      if (a === 'calendar-add-event') eventForm({date:ui.calSelected||iso(TODAY)});
+      else if (a === 'calendar-export') downloadCalendarCSV();
+      else if (a === 'add-partner') partnerForm();
       else if (a === 'edit-partner') partnerForm(partner(id));
       else if (a === 'log') touchForm(id);
       else if (a === 'add-event') eventForm();

@@ -59,3 +59,10 @@ This fork retains the business-development CRM while adding Torus Medicine's ori
 ### Visual v2 backup and change policy
 
 The previous finished design is preserved in branch [`backup/pre-calendar-liquid-polish-2026-11-17`](https://github.com/SacredRebel/TorusMindDashboard-visual/tree/backup/pre-calendar-liquid-polish-2026-11-17). Future visual iterations must remain **additive**: never rebuild from scratch or remove the current torus, mandala, sacred geometry, main identity, and visual language. The second pass makes Today a compact command center with an embedded calendar and denser KPIs; Calendar now sits directly after Patients in navigation. Polishing follows the rules from the [`dashboard-tools-`](https://github.com/SacredRebel/dashboard-tools-) repository. The preview uses fictional `sample.js` only, with no inherited business demo imports.
+
+
+### Torus Experience v3 — calendar, pipeline, appearance
+
+The working v2 design is preserved in the backup branch `backup/pre-calendar-pipeline-theme-2026-11-17`. V3 adds an accessible Month/Week/Agenda calendar, partner/event editing on selected days, CSV export for Google Sheets, a properly contained scrollable pipeline, interactive logo flourish, and a persistent forest-green dark theme. There is **no live Sheets sync** until an approved Sheet and credentials are connected; the existing Supabase save/realtime path remains intact.
+
+See [the design, data, and synchronization guide](docs/CALENDAR-AND-EXPERIENCE-V3.md). Run `python scripts/experience_regression.py`, `python scripts/visual_regression.py`, `python scripts/func.py`, and `python scripts/live_test.py` to verify the implementation. No new runtime dependencies were added.
