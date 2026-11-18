@@ -1,4 +1,5 @@
-"""V8 targeted visual/behavior regression. Demo data only; no backend credentials."""
+"""V9 Torus finish regression: warm palettes, feathered geometry, header triangles, pipeline stages.
+Demo data only; no backend credentials. Usage: python3 scripts/torus_finish_regression.py [width]"""
 from pathlib import Path
 from functools import partial
 from threading import Thread
@@ -24,22 +25,44 @@ with sync_playwright() as p:
     page.evaluate('(x)=>document.documentElement.dataset.appearance=x',appearance)
     page.wait_for_timeout(360)
     stats=page.evaluate('''() => {
-      const card=document.querySelector('[data-view] .torus-ornament-host');
-      const gem=card?.querySelector('.torus-card-ornament');
       const header=document.querySelector('.top, .cal-header, .settings-page-intro');
       const art=header?.querySelector('.brand-header-media');
       const tri=art?.querySelector('.brand-header-triangle');
       const cell=document.querySelector('.pipeline-board .col[data-stage]');
+      // The triangle must not sit on any header text.
+      let overlap=null;
+      if(tri && header && getComputedStyle(header).display!=='none'){
+        const t=tri.getBoundingClientRect();
+        for(const el of header.querySelectorAll('h1,h2,p,[data-crumb] a')){
+          if(el.closest('.brand-header-media'))continue;
+          const range=document.createRange();range.selectNodeContents(el);
+          for(const r of range.getClientRects()){
+            const x=Math.min(r.right,t.right-t.width*.25)-Math.max(r.left,t.left+t.width*.25);
+            const y=Math.min(r.bottom,t.bottom)-Math.max(r.top,t.top);
+            if(r.width>2&&x>2&&y>2&&parseFloat(getComputedStyle(tri).opacity)>.4)overlap=el.textContent.trim().slice(0,40);
+          }
+        }
+      }
+      // Night grove must stay warm: no forest-green surfaces outside the hero, stage columns and status marks.
+      const green=[];
+      if(document.documentElement.dataset.appearance==='dark'){
+        for(const el of document.querySelectorAll('[data-view] .card, [data-view] .kpi, [data-view] .field, [data-view] select, [data-view] .chip:not(.success), .top, .cal-header, .cal-cell, .cal-tools, .cal-day-panel, .pipeline-toolbar, .settings-page-intro')){
+          if(el.closest('.welcome, .pipeline-board'))continue;
+          const m=getComputedStyle(el).backgroundColor.match(/[0-9.]+/g);if(!m)continue;
+          const [r,g,b,a=1]=m.map(Number);if(a>.3&&g>r+14&&g>=b)green.push(el.className.toString().slice(0,40));
+        }
+      }
+      const cards=[...document.querySelectorAll('[data-view] .card:not(.welcome):not(.signin)')];
+      const decorated=cards.filter(c=>!c.classList.contains('torus-card-plain'));
       return {
         screen:document.documentElement.dataset.screen,
-        cards:document.querySelectorAll('[data-view] .card:not(.welcome):not(.signin)').length,
-        emblems:document.querySelectorAll('[data-view] .torus-card-ornament').length,
-        bgSize:card?getComputedStyle(card).backgroundSize:null,
-        gemBg:gem?getComputedStyle(gem).backgroundImage:null,
-        gemOpacity:gem?getComputedStyle(gem).opacity:null,
-        headerGem:art?getComputedStyle(art,'::before').backgroundImage:null,
+        cards:decorated.length,
+        emblems:decorated.filter(c=>c.querySelector(':scope > .torus-card-ornament')).length,
+        ornamentPointer:document.querySelector('.torus-card-ornament')?getComputedStyle(document.querySelector('.torus-card-ornament')).pointerEvents:'none',
+        headerGeo:art?getComputedStyle(art,'::before').maskImage||getComputedStyle(art,'::before').webkitMaskImage:null,
         triangleOpacity:tri?getComputedStyle(tri).opacity:null,
         trianglePhoto:tri?getComputedStyle(tri).backgroundImage:null,
+        overlap, green,
         stageCount:document.querySelectorAll('.pipeline-board .col[data-stage]').length,
         stageBg:cell?getComputedStyle(cell).backgroundImage:null,
         width:document.documentElement.scrollWidth,
@@ -47,14 +70,13 @@ with sync_playwright() as p:
       };
     }''')
     if stats['cards']:
-     assert stats['cards']==stats['emblems'],(route,appearance,'Missing emblems',stats)
-     pointer=page.locator('.torus-card-ornament').first.evaluate('e=>getComputedStyle(e).pointerEvents')
-     assert pointer=='none',(route,appearance,'Decorative geometry intercepting controls')
-     assert stats['bgSize']=='cover',(route,appearance,'Gradient patch not fixed',stats['bgSize'])
-     assert '-v8-'+appearance+'.svg' in stats['gemBg'],(route,appearance,'Wrong asset',stats['gemBg'])
+     assert stats['cards']==stats['emblems'],(route,appearance,'Missing corner geometry',stats)
+     assert stats['ornamentPointer']=='none',(route,appearance,'Decorative geometry intercepting controls')
     if route!='today':
-     assert stats['headerGem'] and '-v8-'+appearance+'.svg' in stats['headerGem'],(route,appearance,stats['headerGem'])
-     assert float(stats['triangleOpacity'])>=.60 if width>760 else float(stats['triangleOpacity'])>=.30,(route,appearance,stats['triangleOpacity'])
+     assert stats['headerGeo'] and 'geo-' in stats['headerGeo'],(route,appearance,stats['headerGeo'])
+     assert 'brand-torus' in (stats['trianglePhoto'] or ''),(route,appearance,'Header photo triangle missing')
+     assert not stats['overlap'],(route,width,appearance,'Triangle covers header text',stats['overlap'])
+    assert not stats['green'],(route,appearance,'Green surface in Night grove',stats['green'])
     if route=='pipeline':
      assert stats['stageCount']>=1
      assert 'linear-gradient' in stats['stageBg']
@@ -71,9 +93,7 @@ with sync_playwright() as p:
      assert len(stage_colors)==6 and len(set(stage_colors.values()))==6,(appearance,stage_colors)
     assert stats['width']<=width+3,(route,width,appearance,'horizontal overflow',stats['width'])
     assert not errors,(route,width,appearance,errors)
-    if route in ('setup','sources','pipeline','today') and width==1440:
-     page.screenshot(path=f'/tmp/torus-v8-{route}-{appearance}.png',animations='disabled')
-    print(f'PASS {width} {appearance} {route}: {stats["emblems"]} geometry marks, transparent assets, full gradients, no errors',flush=True)
+    print(f'PASS {width} {appearance} {route}: {stats["emblems"]} corner figures, triangle clear of text, warm surfaces, no errors',flush=True)
   context.close()
  browser.close()
 server.shutdown()

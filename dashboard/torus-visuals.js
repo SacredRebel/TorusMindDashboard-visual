@@ -37,7 +37,7 @@
       speed: Number(host.dataset.speed || 0.26),
       mode: host.dataset.mode || 'torus',
       play: !reduceMotion.matches, visible: true,
-      time: 0.7, orbitX: -0.38, orbitY: 0.32,
+      time: 0.7, orbitX: 0, orbitY: 0.32,
       drag: null, pointerX: 0, pointerY: 0, lastFrame: 0
     };
     instances.set(host, inst);
@@ -101,135 +101,104 @@
     return inst;
   }
 
+  // Living torus: viewed from ~35deg above so the centre stays open.
   function project(i, x, y, z) {
-    const ry = i.orbitY + i.time * .16;
-    const rx = -.20 + i.orbitX + .08 * Math.sin(i.time * .17);
-    const rz = i.time * .072;
-    const cy = Math.cos(ry), sy = Math.sin(ry), cx = Math.cos(rx), sx = Math.sin(rx), cz = Math.cos(rz), sz = Math.sin(rz);
+    const ry = i.orbitY + i.time * .11;
+    const rx = -1.02 + i.orbitX * .7 + .05 * Math.sin(i.time * .17);
+    const cy = Math.cos(ry), sy = Math.sin(ry), cx = Math.cos(rx), sx = Math.sin(rx);
     let nx = x*cy + z*sy, nz = -x*sy + z*cy;
-    let ny = y*cx - nz*sx; nz = y*sx + nz*cx;
-    let tx = nx*cz - ny*sz, ty=nx*sz + ny*cz;
-    const perspective = 4.6/(4.6-nz*.42);
-    const scale = Math.min(i.w * .41, i.h * .33) * perspective;
-    return [i.w*.51+tx*scale, i.h*.50+ty*scale, nz];
+    const ny = y*cx - nz*sx; nz = y*sx + nz*cx;
+    const scale = Math.min(i.w * .23, i.h * .27);
+    const perspective = 4.2/(4.2 - nz*.5);
+    return [i.w*.5 + nx*scale*perspective, i.h*.44 + ny*scale*perspective, nz];
   }
-
-  function geometry(u,v) {
-    const R=1.16, r=.63;
-    return [(R+r*Math.cos(v))*Math.cos(u), (R+r*Math.cos(v))*Math.sin(u), r*Math.sin(v)];
+  // Torus surface; the tube breathes slowly (about one breath every ten seconds).
+  function surface(i, u, v) {
+    const R = 1.02, r = .5 * (1 + .045 * Math.sin(i.time * .62));
+    return [(R + r*Math.cos(v))*Math.cos(u), r*Math.sin(v), (R + r*Math.cos(v))*Math.sin(u)];
   }
-
-  function drawThreads(i, ctx, isFront) {
-    const N=32, M=24;
-    ctx.lineCap='round'; ctx.lineJoin='round';
-    for(let family=0;family<2;family++) {
-      const count=family===0 ? N:M, steps=family===0 ? 122:98;
-      for(let j=0;j<count;j++) {
-        const t0=TWO_PI*j/count, colorMix=j%5===0;
-        ctx.beginPath(); let open=false;
-        for(let s=0;s<=steps;s++) {
-          const t=TWO_PI*s/steps;
-          const u=family===0 ? t : t0;
-          const v=family===0 ? t0 + .16*Math.sin(i.time*.37 + t0*2) : t;
-          const p=geometry(u,v), q=project(i,...p);
-          // Separate the near and far hemispheres for correct luminous occlusion.
-          const shouldDraw=isFront ? q[2]>=-.035 : q[2]<-.035;
-          if(shouldDraw) {if(!open){ctx.moveTo(q[0],q[1]);open=true;} else ctx.lineTo(q[0],q[1]);}
-          else open=false;
-        }
-        ctx.strokeStyle = isFront
-          ? (colorMix ? rgba(255,228,175,.82) : rgba(232,220,187,family===0?.58:.31))
-          : (colorMix ? rgba(233,207,153,.20) : rgba(180,208,189,.115));
-        ctx.lineWidth = isFront ? (colorMix ? 1.2 : .72) : .54;
-        ctx.stroke();
+  function strokeFamily(i, ctx, front, count, steps, alongU, gold, sage) {
+    for (let j = 0; j < count; j++) {
+      const t0 = TWO_PI * j / count, accent = j % (alongU ? 3 : 6) === 0;
+      ctx.beginPath(); let open = false;
+      for (let s = 0; s <= steps; s++) {
+        const t = TWO_PI * s / steps;
+        const q = project(i, ...(alongU ? surface(i, t, t0) : surface(i, t0, t)));
+        const show = front ? q[2] >= -.02 : q[2] < -.02;
+        if (show) { if (!open) { ctx.moveTo(q[0], q[1]); open = true; } else ctx.lineTo(q[0], q[1]); } else open = false;
+      }
+      ctx.strokeStyle = accent ? gold : sage;
+      ctx.lineWidth = front ? (accent ? 1.05 : .62) : .5;
+      ctx.stroke();
+    }
+  }
+  function drawTorus(i, ctx) {
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    // back half, then the flowing energy, then the front half
+    strokeFamily(i, ctx, false, 30, 72, false, rgba(240,214,163,.16), rgba(170,200,180,.08));
+    strokeFamily(i, ctx, false, 9, 120, true, rgba(240,214,163,.14), rgba(170,200,180,.07));
+    drawFlow(i, ctx);
+    strokeFamily(i, ctx, true, 30, 72, false, rgba(255,229,189,.62), rgba(214,226,206,.30));
+    strokeFamily(i, ctx, true, 9, 120, true, rgba(255,229,189,.5), rgba(214,226,206,.2));
+  }
+  // Energy rises through the centre, rolls over the top and returns around the outside.
+  function drawFlow(i, ctx) {
+    const n = i.w < 420 ? 70 : 110;
+    for (let k = 0; k < n; k++) {
+      const u = TWO_PI * ((k * .61803398875) % 1) + i.time * .05;
+      const v0 = TWO_PI * ((k * .41421356) % 1) - i.time * (.55 + (k % 4) * .08);
+      for (let tail = 0; tail < 4; tail++) {
+        const q = project(i, ...surface(i, u, v0 + tail * .07));
+        const depth = clamp(.5 + q[2] * .45, .12, 1);
+        const a = (1 - tail / 4) * depth * (k % 7 === 0 ? .95 : .6);
+        ctx.beginPath(); ctx.arc(q[0], q[1], (k % 7 === 0 ? 1.7 : 1.05) * (1 - tail * .18), 0, TWO_PI);
+        ctx.fillStyle = rgba(255, 230, 178, a); ctx.fill();
       }
     }
   }
 
-  function drawParticles(i, ctx) {
-    const time=i.time;
-    for(let k=0;k<94;k++) {
-      const u=TWO_PI*((k*0.61803398875)%1) + time*(k%3===0?.55:.23);
-      const v=TWO_PI*((k*0.4142135623)%1) + time*(k%5===0?.32:.50);
-      const q=project(i,...geometry(u,v));
-      const a = clamp(.22 + q[2]*.19, .07,.72);
-      const radius=(k%9===0?1.75:.67)*Math.min(1.3,i.w/550);
-      ctx.beginPath();ctx.arc(q[0],q[1],radius,0,TWO_PI);
-      ctx.fillStyle=rgba(255,230,174,a);ctx.fill();
-    }
-  }
-
-  // Sculptural flower-of-life: depth-sorted petals orbit in three dimensions.
-  // This is an original procedural interpretation paired with the client's
-  // own torus22 artwork, not a frame-by-frame reproduction of the source video.
-  // Calm, sculptural flower-of-life with true projected depth.
-  // Keeps pointer orbit, pause, speed and reduced-motion behavior intact.
-  function drawRosette(i,ctx) {
-    const steps = i.w < 420 ? 66 : 88;
-    const turn = i.time*.065 + i.orbitY*.33 + i.pointerX*.10;
-    const tilt = clamp(i.orbitX*.38-.12+i.pointerY*.11,-.48,.48);
-    const cy=Math.cos(tilt), sy=Math.sin(tilt);
-    const scale=Math.min(i.w*.205,i.h*.255);
-    const projectPetal=(x,y,z)=>{
-      const rotX=x*Math.cos(turn)-y*Math.sin(turn);
-      const rotY=x*Math.sin(turn)+y*Math.cos(turn);
-      const tiltedY=rotY*cy-z*sy,depth=rotY*sy+z*cy;
-      const perspective=1+depth*.04;
-      return [i.w*.51+rotX*scale*perspective,i.h*.5+tiltedY*scale*perspective,depth];
+  // Torus Bloom: seed of life, twelve petals that open and close, two counter-turning
+  // triangles (the brand's header triangles) and a twinkling outer ring.
+  function drawRosette(i, ctx) {
+    const turn = i.time * .05 + i.orbitY * .33 + i.pointerX * .10;
+    const tilt = clamp(i.orbitX * .38 - .1 + i.pointerY * .11, -.48, .48);
+    const ct = Math.cos(tilt), st = Math.sin(tilt);
+    const scale = Math.min(i.w * .2, i.h * .24);
+    const P = (x, y, z = 0, extra = 0) => {
+      const c = Math.cos(turn + extra), s = Math.sin(turn + extra);
+      const rx = x*c - y*s, ry = x*s + y*c;
+      const ty = ry*ct - z*st, d = ry*st + z*ct, k = 1 + d*.05;
+      return [i.w*.5 + rx*scale*k, i.h*.44 + ty*scale*k, d];
     };
-    ctx.save();
-    ctx.lineCap='round';
-    ctx.lineJoin='round';
-    const circles=[
-      {count:6,reach:.60,size:.66,phase:0},
-      {count:12,reach:1.12,size:.45,phase:.18},
-      {count:18,reach:1.50,size:.245,phase:.08}
-    ];
-    const petals=[];
-    for(const ring of circles){
-      for(let k=0;k<ring.count;k++){
-        const a=2*Math.PI*k/ring.count+ring.phase;
-        const depth=.08*Math.sin(a*2+i.time*.18);
-        petals.push({ring,k,a,depth});
-      }
+    const path = (pts, close) => { ctx.beginPath(); pts.forEach((q, n) => n ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); if (close) ctx.closePath(); };
+    const circle = (cx, cy, r, extra, steps = 64) => path(Array.from({ length: steps + 1 }, (_, n) => { const a = TWO_PI * n / steps; return P(cx + r*Math.cos(a), cy + r*Math.sin(a), .05*Math.sin(a*2 + i.time*.2), extra); }));
+    const breath = 1 + .06 * Math.sin(i.time * .5);
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    // outer frame
+    for (const [r, a] of [[1.62, .34], [1.7, .18]]) { circle(0, 0, r, 0, 120); ctx.strokeStyle = rgba(246,217,156,a); ctx.lineWidth = .8; ctx.stroke(); }
+    // petals (vesica lenses)
+    for (let k = 0; k < 12; k++) {
+      const a = TWO_PI * k / 12, len = 1.38 * breath, wid = .2 + .05 * Math.sin(i.time * .5 + k);
+      const pts = [];
+      for (let s = 0; s <= 28; s++) { const t = s / 28, along = .45 + t*(len - .45), side = Math.sin(Math.PI*t) * wid; pts.push([along*Math.cos(a) - side*Math.sin(a), along*Math.sin(a) + side*Math.cos(a)]); }
+      for (let s = 28; s >= 0; s--) { const t = s / 28, along = .45 + t*(len - .45), side = -Math.sin(Math.PI*t) * wid; pts.push([along*Math.cos(a) - side*Math.sin(a), along*Math.sin(a) + side*Math.cos(a)]); }
+      path(pts.map(([x, y]) => P(x, y, .06*Math.sin(a*2 + i.time*.2))), true);
+      ctx.strokeStyle = k % 3 === 0 ? rgba(249,226,175,.7) : rgba(196,220,198,.45); ctx.lineWidth = k % 3 === 0 ? .95 : .7; ctx.stroke();
     }
-    petals.sort((a,b)=>a.depth-b.depth);
-    for(const {ring,k,a,depth} of petals){
-      ctx.beginPath();
-      for(let n=0;n<=steps;n++){
-        const u=2*Math.PI*n/steps;
-        const x=ring.reach*Math.cos(a)+ring.size*Math.cos(u);
-        const y=ring.reach*Math.sin(a)+ring.size*Math.sin(u);
-        const z=depth+.075*Math.sin(u*2+a+i.time*.20);
-        const q=projectPetal(x,y,z);
-        if(n===0)ctx.moveTo(q[0],q[1]); else ctx.lineTo(q[0],q[1]);
-      }
-      const back=depth<-.025;
-      const golden=k%3===0 || ring.count===6;
-      ctx.strokeStyle=golden?rgba(249,226,175,back?.36:.77):rgba(189,218,191,back?.26:.60);
-      ctx.lineWidth=ring.count===6?1.08:back?.56:.83;
-      ctx.stroke();
+    // star of two triangles, turning against each other
+    for (const [dir, col] of [[1, rgba(249,226,175,.62)], [-1, rgba(196,220,198,.46)]]) {
+      const spin = dir * i.time * .07, r = 1.16;
+      path([0, 1, 2].map((n) => { const a = spin + TWO_PI*n/3 + (dir > 0 ? -Math.PI/2 : Math.PI/2); return P(r*Math.cos(a), r*Math.sin(a), 0, -turn + turn*.35); }), true);
+      ctx.strokeStyle = col; ctx.lineWidth = .9; ctx.stroke();
     }
-    // A crisp, stabilizing center and two concentric dimensional orbit lines.
-    for(const [r,alpha] of [[.55,.53],[1.63,.32]]){
-      ctx.beginPath();
-      for(let n=0;n<=144;n++){
-        const a=2*Math.PI*n/144;
-        const q=projectPetal(r*Math.cos(a),r*Math.sin(a),.07*Math.sin(a*3+i.time*.14));
-        if(n===0)ctx.moveTo(q[0],q[1]); else ctx.lineTo(q[0],q[1]);
-      }
-      ctx.strokeStyle=rgba(246,217,156,alpha);
-      ctx.lineWidth=.78;
-      ctx.stroke();
+    // seed of life
+    for (let k = 0; k < 7; k++) { const a = TWO_PI * k / 6; const o = k === 6 ? 0 : .3*breath; circle(o*Math.cos(a), o*Math.sin(a), .3*breath, 0, 48); ctx.strokeStyle = rgba(255,232,190,k === 6 ? .75 : .5); ctx.lineWidth = .8; ctx.stroke(); }
+    // twinkling ring of 24 beads
+    for (let k = 0; k < 24; k++) {
+      const a = TWO_PI * k / 24, q = P(1.62*Math.cos(a), 1.62*Math.sin(a));
+      const tw = .35 + .65 * (.5 + .5 * Math.sin(i.time * 1.1 + k * 1.7));
+      ctx.beginPath(); ctx.arc(q[0], q[1], k % 2 ? 1.1 : 1.8, 0, TWO_PI); ctx.fillStyle = rgba(255,230,178,.85*tw); ctx.fill();
     }
-    const c=projectPetal(0,0,.1);
-    const radius=Math.min(i.w,i.h)*.095;
-    const glow=ctx.createRadialGradient(c[0],c[1],1,c[0],c[1],radius);
-    glow.addColorStop(0,'rgba(255,236,175,.20)');
-    glow.addColorStop(.45,'rgba(222,208,163,.07)');
-    glow.addColorStop(1,'rgba(255,240,200,0)');
-    ctx.fillStyle=glow;
-    ctx.beginPath();ctx.arc(c[0],c[1],radius,0,2*Math.PI);ctx.fill();
     ctx.restore();
   }
 
@@ -238,26 +207,14 @@
     const {ctx,w,h,dpr}=i;
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,w,h);
-    const cx=w*.51,cy=h*.5;
-    const glow=ctx.createRadialGradient(cx,cy,6,cx,cy,Math.min(w,h)*.56);
-    glow.addColorStop(0,'rgba(255,228,174,.16)');
-    glow.addColorStop(.34,'rgba(151,176,145,.11)');
+    const cx=w*.5,cy=h*.44, pulse=.13+.04*Math.sin(i.time*.62);
+    const glow=ctx.createRadialGradient(cx,cy,4,cx,cy,Math.min(w,h)*.55);
+    glow.addColorStop(0,`rgba(255,228,174,${pulse})`);
+    glow.addColorStop(.4,'rgba(151,176,145,.08)');
     glow.addColorStop(1,'rgba(255,255,255,0)');
     ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);
     ctx.save();ctx.globalCompositeOperation='screen';
-    if(i.mode==='rosette') drawRosette(i,ctx);
-    else {
-      drawThreads(i,ctx,false);
-      drawParticles(i,ctx);
-      drawThreads(i,ctx,true);
-    }
-    ctx.restore();
-    // Quiet external orbit lines ground the sculpture in its setting.
-    ctx.save();ctx.translate(cx,cy);ctx.rotate(-.3+i.time*.018);
-    for(let n=0;n<2;n++){
-      ctx.beginPath();ctx.ellipse(0,0,Math.min(w*.41,h*.43)+n*15,Math.min(h*.29,w*.23)+n*11,0,0,TWO_PI);
-      ctx.strokeStyle='rgba(255,232,188,'+(n===0?.15:.08)+')';ctx.lineWidth=.7;ctx.stroke();
-    }
+    if(i.mode==='rosette') drawRosette(i,ctx); else drawTorus(i,ctx);
     ctx.restore();
   }
 

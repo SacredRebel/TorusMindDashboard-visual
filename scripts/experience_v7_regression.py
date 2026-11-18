@@ -29,8 +29,8 @@ async def main():
    assert await page.locator('.cal-record-link').count()>=1
    if theme=='dark':
     await page.wait_for_timeout(250)
-    color=await page.locator('.cal-cell.is-selected').first.evaluate('el=>getComputedStyle(el).backgroundColor')
-    assert color=='rgb(71, 103, 79)',color
+    ring=await page.locator('.cal-cell.is-selected').first.evaluate('el=>getComputedStyle(el).boxShadow')
+    assert 'inset' in ring,ring  # V9: selected day = warm gold ring
    if width==1440:
     await page.screenshot(path=str(SHOTS/f'v7-calendar-{theme}.png'),animations='disabled',timeout=12000)
    await page.locator('.cal-appointment-trigger[aria-expanded="true"]').click()

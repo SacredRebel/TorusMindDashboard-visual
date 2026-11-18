@@ -93,3 +93,8 @@ The previous V6 is preserved at [`backup/pre-v7-operational-polish-2026-11-17`](
 ### Experience V8 — original geometry restored and differentiated pipeline stages
 
 V8 corrects a real CSS background-layer sizing defect that caused square patches in ROI, Settings and other cards, restores original sacred geometry through explicit transparent ornaments in both themes, strengthens the original Torus header triangles and corner artwork, improves warm text/card contrast, and assigns each of the **six pipeline stages** its own complete light/dark column-and-card color treatment. The approved V7 functionality and animated Torus/Mandala are preserved. See [V8 implementation and QA guide](docs/EXPERIENCE-V8-VISUAL-FINISH.md). Rollback: [`backup/pre-v8-geometry-stage-polish-2026-11-18`](https://github.com/SacredRebel/TorusMindDashboard-visual/tree/backup/pre-v8-geometry-stage-polish-2026-11-18).
+
+
+### Torus Experience V9: warm brand finish
+
+The V8 design is preserved in `backup/pre-v9-brand-finish-2026-11-18`. V9 warms both themes to the torusmedicine.com palette, restores feathered, slowly turning sacred geometry in header and card corners, places the photo triangles clear of all text, gives cards a subtle liquid surface, strengthens titles and numbers, and redraws the Today torus (living energy flow) and mandala (Torus Bloom). Visual only; no data or workflow changes. See [the V9 release note](docs/EXPERIENCE-V9-BRAND-FINISH.md).
