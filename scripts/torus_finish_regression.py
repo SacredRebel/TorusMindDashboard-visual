@@ -91,6 +91,18 @@ with sync_playwright() as p:
       assert 'linear-gradient' in style['background'] and 'linear-gradient' in style['card']
       stage_colors[style['name']]=style['column']
      assert len(stage_colors)==6 and len(set(stage_colors.values()))==6,(appearance,stage_colors)
+    if route in ('partners','events','patients'):
+     act={'partners':'add-partner','events':'add-event','patients':'add-counts'}[route]
+     page.locator(f'[data-act="{act}"]').first.click()
+     page.wait_for_timeout(250)
+     panel=page.evaluate("""()=>{const p=document.querySelector('[data-drawer-panel]');const m=getComputedStyle(p).backgroundColor.match(/[0-9.]+/g).map(Number);
+       const f=p.querySelector('.top-actions, .partner-form-submit, .event-form-submit');const fb=f?f.getBoundingClientRect():null;
+       const btns=f?[...f.querySelectorAll('.btn')].map(b=>Math.round(b.getBoundingClientRect().top)):[];
+       return {rgb:m,sameRow:btns.length<2||Math.abs(btns[0]-btns[1])<4}}""")
+     r,g,b=panel['rgb'][:3]
+     assert not (g>r+14 and g>=b),(route,appearance,'Green drawer',panel)
+     assert panel['sameRow'],(route,width,appearance,'Drawer buttons not side by side')
+     page.keyboard.press('Escape'); page.wait_for_timeout(150)
     assert stats['width']<=width+3,(route,width,appearance,'horizontal overflow',stats['width'])
     assert not errors,(route,width,appearance,errors)
     print(f'PASS {width} {appearance} {route}: {stats["emblems"]} corner figures, triangle clear of text, warm surfaces, no errors',flush=True)

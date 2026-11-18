@@ -13,8 +13,22 @@
   const ACTIONS = '.top-actions, .cal-header-actions, .settings-page-controls';
   let queued = false;
 
-  // A thin golden outline triangle that sways against the photo triangle.
-  const LINE_TRI = '<svg viewBox="0 0 100 92" preserveAspectRatio="none" aria-hidden="true"><polygon points="50,2 98,90 2,90" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"/><polygon points="50,90 74,46 26,46" fill="none" stroke="currentColor" stroke-width=".7" vector-effect="non-scaling-stroke" opacity=".7"/></svg>';
+  // Sacred emblem drawn over the photo triangle: a gold rim that traces it exactly, an inverted
+  // twin that turns slowly into a six-point star, a dashed circle turning the other way, and a
+  // glowing seed at the centre. Viewbox matches the triangle box (100 x 92), so nothing distorts.
+  const EMBLEM = {
+    up: { tri: '50,0 100,92 0,92', twin: '50,122.6 100,30.6 0,30.6', c: [50, 61.3], r: 59.6, cy: 59.6 },
+    down: { tri: '0,0 100,0 50,92', twin: '0,61.4 100,61.4 50,-30.6', c: [50, 30.7], r: 59.6, cy: 32.4 }
+  };
+  function emblemSvg(dir) {
+    const e = EMBLEM[dir], [cx, cy] = e.c;
+    const dots = e.tri.split(' ').map((pt) => { const [x, y] = pt.split(','); return `<circle cx="${x}" cy="${y}" r="1.4" class="tf-em-dot"/>`; }).join('');
+    return `<svg viewBox="0 0 100 92" aria-hidden="true" overflow="visible">
+      <circle cx="50" cy="${e.cy}" r="${(e.r * 1.1).toFixed(1)}" class="tf-em-ring"/>
+      <g class="tf-em-twin" style="transform-origin:${cx}px ${cy}px"><polygon points="${e.twin}"/></g>
+      <polygon points="${e.tri}" class="tf-em-rim"/>
+      <circle cx="${cx}" cy="${cy}" r="7" class="tf-em-glow"/><circle cx="${cx}" cy="${cy}" r="1.8" class="tf-em-seed"/>${dots}</svg>`;
+  }
 
   function textRight(header) {
     let right = 0, bottom = 0;
@@ -31,11 +45,11 @@
   function placeTriangle(header) {
     const media = header.querySelector(':scope > .brand-header-media');
     if (!media) return;
-    if (!media.querySelector('.brand-header-tri-line')) {
-      const line = document.createElement('span');
-      line.className = 'brand-header-tri-line'; line.innerHTML = LINE_TRI;
-      media.appendChild(line);
-    }
+    const tri = media.querySelector('.brand-header-triangle');
+    const dir = tri && /0px 0px|0% 0%|^polygon\(0 0/.test(getComputedStyle(tri).clipPath) ? 'down' : 'up';
+    let line = media.querySelector('.brand-header-tri-line');
+    if (!line) { line = document.createElement('span'); line.className = 'brand-header-tri-line'; media.appendChild(line); }
+    if (line.dataset.dir !== dir) { line.dataset.dir = dir; line.innerHTML = emblemSvg(dir); }
     const box = header.getBoundingClientRect();
     if (box.width < 10) return;
     const text = textRight(header);

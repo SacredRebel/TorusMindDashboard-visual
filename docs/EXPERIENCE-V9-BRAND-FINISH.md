@@ -35,3 +35,11 @@ Only transform and opacity animate. Everything stops under the Settings "Reduced
 - `scripts/experience_regression.py` already failed on V8 (a stale `.cal-entry-edit` selector from V3) and is unchanged.
 
 Screenshots: `docs/screenshots/v9-*.jpg`.
+
+## V9.1: emblems, pop-ups and generic contacts
+
+- **Header triangles:** each photo triangle now carries a sacred emblem: a gold rim that traces it exactly, an inverted twin turning slowly into a six-point star, a dashed circle turning the other way, a glowing seed at the centre and gold points at the corners. A soft light sheen crosses the photo every few seconds. When a long title pushes the triangle into the corner, the corner figure steps back.
+- **Pop-ups:** every drawer (add/edit partner, log a touch, plan/edit an event, add/edit counts, IntakeQ import) uses the same warm surface as the pages: feathered corner figure, small gold triangle mark, warm section panels, gold focus rings and a sticky footer with the buttons side by side. The scrim is a light warm veil instead of a green blur.
+- **Palette:** daylight is a touch cleaner (less yellow haze); night surfaces are lifted slightly.
+- **Contacts are generic:** every partner in the demo (`sample.js`), the optional database seed (`supabase/seed_playbook_partners.sql`), the tracker generator (`tracker/build_tracker.py` and the spreadsheet it builds) and the test fixture now use placeholder names ("Dr. Jane Doe", "Sample Wellness Clinic"), "City A–H" and (555) 123-45xx numbers. No real person, practice, address, email or phone number remains in the current files. Numbers, stages and dates are unchanged.
+- **Check:** the V9 regression also opens the partner, event and counts drawers in both themes and fails on a green panel or stacked footer buttons.

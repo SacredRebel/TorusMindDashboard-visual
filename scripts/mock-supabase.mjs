@@ -5,7 +5,7 @@ const uuid = () => 'u' + Math.random().toString(36).slice(2, 10);
 const db = (window.__db = window.__db || {
   team_members: [{ email: 'kim@torusmedicine.com', name: 'Kim', role: 'admin' }],
   settings: [{ id: 1, open_date: '2026-09-01', staff_cost: 50 }],
-  partners: [{ id: 'P-001', contact: 'Dr. Test Partner', org: 'Example Clinic', type: 'Clinical referrer', activity: 'A1', specialty: 'Primary care', city: 'Stuart', phone: '(772) 555-0100', status: 'Cold', owner: 'Kim', next_follow_up: null, next_step: 'Send intro letter', met_at: null }],
+  partners: [{ id: 'P-001', contact: 'Dr. Test Partner', org: 'Example Clinic', type: 'Clinical referrer', activity: 'A1', specialty: 'Primary care', city: 'City A', phone: '(555) 123-4500', status: 'Cold', owner: 'Kim', next_follow_up: null, next_step: 'Send intro letter', met_at: null }],
   touches: [], events: [], lead_counts: [],
 });
 const keyOf = { partners: 'id', touches: 'id', events: 'id', lead_counts: 'id', team_members: 'email', settings: 'id' };

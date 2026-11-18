@@ -96,19 +96,19 @@ setup(pt, "Partners & Providers — referral pipeline (Playbook discipline #2)",
       "One row per provider, practice, venue or colleague. No patient information on this tab. Update status the same day as any interaction.",
       p_head, p_w, formula_cols=(9, 10, 11, 14, 15, 19))
 partners = [
-    ("P-001", "Dr. Jane Doe", "Sample Wellness Clinic", "Clinical referrer", 0, "HRT / cash-pay wellness", "Stuart", "123 Example St · (555) 123-4501", "Shari (Dr. Samson)", "20-min in-person meeting; Annette books. Co-produce HRT-ketamine one-pager. Target: agreement in 60 days, 1st referral in 90."),
-    ("P-002", "Ketamine / pain specialist (TBD)", "Example Pain Management", "Clinical referrer", 2, "Pain management", "Port St. Lucie", "", "Kim", "Partnership candidate + education series invite"),
-    ("P-003", "Dr. John Doe", "Demo Functional Medicine", "Clinical referrer", 2, "Functional medicine", "Stuart / Jensen Beach", "", "Kim", "First education event target"),
-    ("P-004", "TBD", "Sample Primary Care", "Clinical referrer", 2, "Primary care", "Palm City / PSL", "", "Kim", "First education event target"),
-    ("P-005", "TBD", "OB-GYN practice #1", "Clinical referrer", 2, "OB-GYN", "Stuart", "", "Kim", "Perimenopause-mood angle"),
-    ("P-006", "TBD", "OB-GYN practice #2", "Clinical referrer", 2, "OB-GYN", "Palm City", "", "Kim", "Perimenopause-mood angle"),
-    ("P-007", "First-responder providers", "Example Health Center", "Clinical referrer", 2, "Primary care", "Port St. Lucie", "", "Kim", ""),
-    ("P-008", "Studio owner", "Sample Yoga Studio", "Community venue", 3, "Yoga", "Jupiter", "123 Example St · (555) 123-4508", "Annette", "Co-host monthly public education events"),
-    ("P-009", "TBD", "Example Yoga Studio", "Community venue", 3, "Yoga", "Stuart", "123 Example St · (555) 123-4509", "Annette", ""),
-    ("P-010", "TBD", "Demo Yoga Studio", "Community venue", 3, "Yoga", "Jupiter", "123 Example St · (555) 123-4510", "Annette", ""),
-    ("P-011", "Colleague (TBD)", "Hospital #1", "Hospital colleague", 4, "", "Palm Beach Gardens", "", "Shari (Dr. Samson)", "Shari's personal send: 15-min catch-up, not a referral ask"),
-    ("P-012", "Colleague (TBD)", "Hospital #2", "Hospital colleague", 4, "", "Delray Beach", "", "Shari (Dr. Samson)", ""),
-    ("P-013", "Colleague (TBD)", "Hospital #3", "Hospital colleague", 4, "", "", "", "Shari (Dr. Samson)", ""),
+    ("P-001", "Dr. Jane Doe", "Sample Wellness Clinic", "Clinical referrer", 0, "HRT / cash-pay wellness", "City A", "123 Example St · (555) 123-4501", "Shari (Dr. Samson)", "20-min in-person meeting; Annette books. Co-produce HRT-ketamine one-pager. Target: agreement in 60 days, 1st referral in 90."),
+    ("P-002", "Pain specialist (TBD)", "Example Pain Management", "Clinical referrer", 2, "Pain management", "City B", "123 Example St · (555) 123-4502", "Kim", "Partnership candidate + education series invite"),
+    ("P-003", "Dr. John Doe", "Demo Functional Medicine", "Clinical referrer", 2, "Functional medicine", "City A", "123 Example St · (555) 123-4503", "Kim", "First education event target"),
+    ("P-004", "TBD", "Sample Primary Care", "Clinical referrer", 2, "Primary care", "City C", "123 Example St · (555) 123-4504", "Kim", "First education event target"),
+    ("P-005", "TBD", "OB-GYN practice #1", "Clinical referrer", 2, "OB-GYN", "City A", "123 Example St · (555) 123-4505", "Kim", "Perimenopause-mood angle"),
+    ("P-006", "TBD", "OB-GYN practice #2", "Clinical referrer", 2, "OB-GYN", "City C", "123 Example St · (555) 123-4506", "Kim", "Perimenopause-mood angle"),
+    ("P-007", "First-responder providers", "Example Health Center", "Clinical referrer", 2, "Primary care", "City B", "123 Example St · (555) 123-4507", "Kim", ""),
+    ("P-008", "Studio owner", "Sample Yoga Studio", "Community venue", 3, "Yoga", "City D", "123 Example St · (555) 123-4508", "Annette", "Co-host monthly public education events"),
+    ("P-009", "TBD", "Example Yoga Studio", "Community venue", 3, "Yoga", "City A", "123 Example St · (555) 123-4509", "Annette", ""),
+    ("P-010", "TBD", "Demo Yoga Studio", "Community venue", 3, "Yoga", "City D", "123 Example St · (555) 123-4510", "Annette", ""),
+    ("P-011", "Colleague (TBD)", "Hospital #1", "Hospital colleague", 4, "", "City E", "123 Example St · (555) 123-4511", "Shari (Dr. Samson)", "Shari's personal send: 15-min catch-up, not a referral ask"),
+    ("P-012", "Colleague (TBD)", "Hospital #2", "Hospital colleague", 4, "", "City F", "123 Example St · (555) 123-4512", "Shari (Dr. Samson)", ""),
+    ("P-013", "Colleague (TBD)", "Hospital #3", "Hospital colleague", 4, "", "", "123 Example St · (555) 123-4513", "Shari (Dr. Samson)", ""),
 ]
 acts = lists["BD activity"]
 for i, (pid, name, org, typ, a, spec, city, contact, owner, notes) in enumerate(partners):
@@ -139,7 +139,7 @@ o_head = ["Date", "Partner ID", "Partner (auto)", "BD activity (auto)", "Method"
 setup(ot, "Outreach Log — every touch with a partner",
       "One row per email, call, meeting, letter or visit. Pick the Partner ID; name and activity fill in. No patient information.",
       o_head, [12, 10, 34, 28, 12, 18, 18, 8, 10, 40], formula_cols=(3, 4))
-ex = [date(2026, 11, 10), "P-001", None, None, "Email", "Annette", "Meeting scheduled", 0.5, 0, "EXAMPLE – delete this row. Meeting at Lead partner 11/20"]
+ex = [date(2026, 11, 10), "P-001", None, None, "Email", "Annette", "Meeting scheduled", 0.5, 0, "EXAMPLE – delete this row. Meeting at partner office 11/20"]
 for c, v in enumerate(ex, start=1):
     if v is not None:
         ot.cell(row=FIRST, column=c, value=v).font = EX_FONT
