@@ -1,29 +1,46 @@
-# Torus Mind & Medicine — Visual Identity v1
+# TORUS MIND & MEDICINE — VISUAL IDENTITY, NOVEMBER 2026
 
-This changes the **presentation layer** of the existing Torus Mind & Medicine BD CRM. It preserves original CRM logic, hash routes, forms, Supabase settings, schema, partner/event records, and demo/live modes. No patient information or tracking has been added.
+## Direction
+A real dashboard presentation layer based on the visual style of https://torusmedicine.com. This is a **business-development/referral operations interface**, not a patient charting system.
 
-## Preview
+## Authentic client assets
+Source: the client website's public Webflow asset library.
+- assets/torus-original-wordmark.png — original horizontal brand mark from the site.
+- assets/torus-original-emblem.png — original brand square mark.
+- assets/torus-watercolor.webp — optimized derivative of the client's watercolor background.
+- assets/torus-ocean.webp — optimized derivative of the client's ocean imagery, retained for future brand use.
+- Original logo-morph motion is streamed from the public site, but **only after the user presses Original**. It is not automatically fetched or bundled.
+Confirm the client's permission to reuse these specific assets before any redistribution outside this commissioned dashboard.
 
-Open **dashboard/visual-preview.html** directly in a browser. It is a **self-contained visual study**, with all styles and animation inline, to avoid the missing-CSS/missing-JS bug in the original preview. Preview data is illustrative and is NOT CRM data.
+## Procedural sacred geometry
+The three new SVG motifs (orbits, flower, mandala) are original procedural interpretations, not the client's original art. The route header pattern changes with each business view, while the cards use a quiet background watermark rather than blocking data.
 
-## Live UI integration
+- Today: interactive torus + orbit geometry.
+- Partners and partner detail: interconnected circle lattice.
+- Patient lead totals: mandala backdrop, without clinical claims or patient-level records.
+- Pipeline and Sources/ROI: orbital geometry.
+- Events and event detail: mandala.
+- Calendar: flower of life circles.
+- Settings: rotating orbit-inspired motifs.
 
-- `dashboard/torus-visuals.css` extends the existing design tokens with a dark moss sidebar, layered forest-toned welcome band, champagne/gold geometry, card and KPI polish, and responsive sizing.
-- `dashboard/torus-visuals.js` adds a dependency-free Canvas2D parametric torus animation (drag to orbit, pause/play; reduced motion and visibility support). It replaces only the `svg.torus` placeholder in the overview welcome band and remounts after SPA rerenders.
-- `dashboard/index.html` now loads both files **after** the original CSS/JS. Main application remains unchanged.
+## Interaction
+- Torus: Canvas2D projected 3D threads; drag to orbit or focus and press arrow keys.
+- Mandala: changing rosette geometry.
+- Original: real source logo-morph video, requested on click, with browser playback controls.
+- Slow/Flow/Fast speed control plus pause, reduced-motion, and visibility-aware animation.
+- Zero Three.js dependencies, and no interference with CRM navigation, forms or Supabase.
 
-## Review before merging upstream
+## Source and QA
+- dashboard/index.html loads brand-polish.css and brand-polish.js after existing Torus CSS and JS.
+- dashboard/app.js, sample.js, supabase/schema.sql and other CRM code remain untouched.
+- Run npm run dev. Main view: /index.html#today.
+- Run python scripts/visual_regression.py to verify 10 routes at 1280px and 375px, source logo, page patterns, geometry controls and horizontal overflow. Browser screenshots are stored in docs/screenshots.
+- Run python scripts/func.py for partner CRUD, pipeline, events, settings and forms.
+- Run python scripts/live_test.py for mock Supabase logins, realtime, and IntakeQ counts-only import.
+- The earlier illustrative and self-contained dashboard/visual-preview.html remains a *design study*, not the live CRM. Use index.html to review the real pages.
 
-1. Start `npm run dev` and inspect real CRM `#today`, `#partners`, `#patients`, `#pipeline`, `#events`, `#sources`, `#calendar`, `#setup` at 1280 and 375 widths.
-2. Run `python3 scripts/shoot.py`, `python3 scripts/func.py`, `python3 scripts/live_test.py` in an environment with browser dependencies.
-3. Verify the welcome band's canvas renders and animates, pause works, cards remain legible, sidebar nav routes work, and no horizontal overflow is introduced on phones.
-4. Confirm no console errors, and that reduced-motion preferences are honored.
-5. Obtain approval and original web-licensed artwork, logo, and a video of the real torus motion before claiming animation fidelity. Do not confuse this original procedural illustration with the client's actual artwork.
+## Privacy
+Never commit patient data. Public demo mode has fictional data; do not imply that this Vercel deployment is suitable for storing PHI. Verify data contracts, security controls and BAAs before live clinical deployment.
 
-## Brand source
-
-Palette comes from the existing `dashboard/torus-theme.css` and `docs/brief.md` brand notes (moss #4a6457, solar resin #a37c3f, golden haze #ffe5bd, moon dust #e9e5de, obsidian #272d32). Figura Sans is a licensed typeface; Jost remains the existing fallback.
-
-## Deployment safety
-
-This is in the separate fork `SacredRebel/TorusMindDashboard-visual`; no changes are applied to the original `kimdudine/TorusMindDashboard` repository. This fork's `main` branch hosts the visual integration, with original backend behavior intact.
+## Collaboration
+All work occurs in SacredRebel/TorusMindDashboard-visual, forked from kimdudine/TorusMindDashboard. The upstream repository remains unchanged until reviewed with its owner.

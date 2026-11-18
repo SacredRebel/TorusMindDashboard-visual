@@ -20,6 +20,10 @@ Business development dashboard and referral CRM for Torus Mind & Medicine (Stuar
    - which provider or event gets the credit
    - the discovery-form funnel: submissions → consults → packages
 
+## Visual identity fork (Nov 2026)
+
+This fork retains the business-development CRM while adding Torus Medicine's original wordmark and art, sacred-geometry treatments on each page, interactive torus and mandala modes, and an on-demand original-brand animation. Start npm run dev and visit http://localhost:4173/index.html#today. Run python scripts/visual_regression.py for desktop/mobile screenshots and navigation checks. See docs/VISUAL-IDENTITY-GUIDE.md for architecture, attribution and privacy notes. All sample data is fictional.
+
 ## Repo layout
 
 | Path | What |

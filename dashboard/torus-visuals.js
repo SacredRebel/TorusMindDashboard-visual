@@ -15,8 +15,9 @@
   function mount(host) {
     if (instances.has(host)) return instances.get(host);
     host.classList.add('torus-field');
-    host.setAttribute('role', 'img');
-    host.setAttribute('aria-label', 'Animated original toroidal sacred geometry with orbiting luminous threads.');
+    host.setAttribute('role', 'group');
+    host.tabIndex = 0;
+    host.setAttribute('aria-label', 'Interactive torus geometry. Drag to rotate or use the arrow keys.');
     const canvas = document.createElement('canvas');
     canvas.className = 'torus-field__canvas';
     canvas.setAttribute('aria-hidden', 'true');
@@ -65,6 +66,15 @@
       inst.drag = {x: ev.clientX, y: ev.clientY};
       host.setPointerCapture?.(ev.pointerId);
       host.classList.add('is-dragging');
+    });
+    host.addEventListener('keydown', (ev) => {
+      if (ev.target !== host || !['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(ev.key)) return;
+      ev.preventDefault();
+      if (ev.key === 'ArrowLeft') inst.orbitY -= .2;
+      if (ev.key === 'ArrowRight') inst.orbitY += .2;
+      if (ev.key === 'ArrowUp') inst.orbitX = clamp(inst.orbitX - .2,-1.5,1.5);
+      if (ev.key === 'ArrowDown') inst.orbitX = clamp(inst.orbitX + .2,-1.5,1.5);
+      draw(inst);
     });
     host.addEventListener('pointermove', (ev) => {
       if (!inst.drag) return;
