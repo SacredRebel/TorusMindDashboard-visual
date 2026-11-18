@@ -69,3 +69,7 @@ See [CALENDAR-AND-EXPERIENCE-V3.md](CALENDAR-AND-EXPERIENCE-V3.md) for the new i
 
 ## Experience V4 — preserved and corrected
 See [the V4 release and verification guide](EXPERIENCE-V4-RELEASE.md) for single-page headers, an in-place Today agenda, whole-cell calendar click behavior, responsive Pipeline stage groups, ROI and Settings organization, distinct client-sourced triangle textures and new depth-projected mandala. The V3 backup remains available.
+
+
+## Experience V5 — restraint and finish
+See [V5 polish and browser verification](EXPERIENCE-V5-POLISH.md). V5 fixes an actual top-of-page text parsing bug, tones down card wallpaper, smooths the Mandala green field, and improves the Add Partner drawer without changing CRM functionality.

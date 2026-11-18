@@ -1,0 +1,311 @@
+/* Torus Experience V5 — surgical finish
+   Fix browser-rendered stray markup, declutter sacred geometry, create a
+   polished mandala field, and improve Today / Partner form density.
+   All CRM logic, palette identity and original Torus modes are preserved. */
+
+/* A reliable top-edge app shell on every route. The actual 25px defect was
+   removed from index.html; this protects against future font/inline gaps. */
+html[data-theme="torus"] body { margin:0; padding:0; }
+html[data-theme="torus"] .app { margin:0; padding:0; min-height:100dvh; }
+@media(min-width:861px){html[data-theme="torus"] .side { top:0; }}
+@media(max-width:860px){html[data-theme="torus"] .side { top:auto;bottom:0;height:auto; }}
+html[data-theme="torus"] .brand-identity { transform-origin:30% 50%; }
+
+/* Geometry is a signature accent, never a wallpaper. The original card
+   gradient remains; backgrounds do not tile across entire data surfaces. */
+html[data-theme="torus"] .card:not(.welcome) {
+ background-repeat:no-repeat,no-repeat!important;
+ background-size:150px 150px,cover!important;
+ background-position:calc(100% + 65px) -68px,center!important;
+}
+html[data-theme="torus"] .today-workspace { align-items:start; }
+html[data-theme="torus"] .today-workspace > .card {
+ align-self:start; min-height:0;height:auto; overflow:hidden;
+}
+html[data-theme="torus"] .today-focus .rows {flex:initial;}
+html[data-theme="torus"][data-appearance="light"] .today-focus {
+ background-image:linear-gradient(153deg,#edf4e9,#e3eee4)!important;
+}
+html[data-theme="torus"][data-appearance="light"] .today-mini-calendar {
+ background-image:linear-gradient(145deg,#e8f2e9,#dfece5)!important;
+}
+html[data-theme="torus"][data-appearance="dark"] .today-focus,
+html[data-theme="torus"][data-appearance="dark"] .today-mini-calendar {
+ background-image:linear-gradient(151deg,#28473a,#203c31)!important;
+}
+html[data-theme="torus"] .today-focus::before {
+ opacity:.095!important;
+ background-size:140px 140px;
+ right:-80px;top:-73px;
+}
+html[data-theme="torus"] .today-mini-calendar::before { opacity:.14!important; }
+html[data-theme="torus"] .today-mini-calendar::after { opacity:.055!important; }
+html[data-theme="torus"] .today-workspace>.card::after { pointer-events:none; }
+html[data-theme="torus"] .today-kpis .kpi {
+ background-repeat:no-repeat,no-repeat!important;
+ background-size:120px 120px,cover!important;
+ background-position:calc(100% + 64px) -55px,center!important;
+}
+html[data-theme="torus"] .today-kpis .kpi::after { opacity:.12!important; }
+html[data-theme="torus"] .today-insights .card,
+html[data-theme="torus"] .settings-card,
+html[data-theme="torus"] .roi-overview > .card {
+ background-repeat:no-repeat,no-repeat!important;
+ background-size:145px 145px,cover!important;
+ background-position:calc(100% + 72px) -72px,center!important;
+}
+
+/* Calm spaces: do not force Needs attention to grow to the calendar height.
+   A selected date should unfold into concise content, not empty card area. */
+html[data-theme="torus"] .today-mini-calendar .card-head,
+html[data-theme="torus"] .today-focus .card-head {position:relative;z-index:1;}
+html[data-theme="torus"] .today-mini-calendar .today-upcoming {align-content:start;}
+html[data-theme="torus"] .today-mini-calendar:has(.today-mini-popover) .today-upcoming {display:none;}
+html[data-theme="torus"] .today-mini-popover {
+ position:relative;z-index:2;
+ margin-top:8px;
+ padding:11px 12px;
+ border-radius:13px;
+ background:linear-gradient(135deg,rgba(228,242,230,.98),rgba(214,232,221,.98));
+}
+html[data-theme="torus"] .today-mini-pop-rows {max-height:108px;overflow:auto;margin:5px 0;}
+html[data-theme="torus"] .today-mini-pop-head h3 {font-size:17px;}
+html[data-theme="torus"] .today-mini-pop-row {padding:7px;}
+html[data-theme="torus"] .today-mini-pop-row button {min-height:30px;}
+html[data-theme="torus"] .today-mini-new-event {min-height:34px;}
+html[data-theme="torus"][data-appearance="dark"] .today-mini-popover {
+ background:linear-gradient(145deg,#284b3b,#294c3d);
+ border-color:#66876b;
+}
+/* Muted row dividers improve scanning without repeating sacred geometry. */
+html[data-theme="torus"] .today-focus .row {border-bottom:1px solid rgba(83,131,99,.13);}
+html[data-theme="torus"] .today-focus .row:last-child {border-bottom:0;}
+html[data-theme="torus"][data-appearance="dark"] .today-focus .row {border-color:rgba(164,194,160,.15);}
+
+/* Mandala: remove the busy photographic backdrop. A clean, tone-matched green
+   atmosphere, soft luminous center and polished edge retain all 3D motion.
+   Separate light/dark color balance, neither uses a blurry repeating photo. */
+html[data-theme="torus"] .torus-field[data-geometry-mode="flower"] {
+ isolation:isolate;
+ border:1px solid rgba(174,204,164,.22);
+ border-radius:17px;
+ background-image:
+   radial-gradient(ellipse at 55% 47%,rgba(178,212,178,.23) 0%,rgba(107,160,121,.075) 31%,transparent 65%),
+   radial-gradient(ellipse at 90% 8%,rgba(207,175,112,.17),transparent 47%),
+   linear-gradient(128deg,#1c4334 4%,#2c5846 56%,#1a3c31 100%)!important;
+ background-size:cover,cover,cover!important;
+ background-position:center!important;
+ background-repeat:no-repeat!important;
+ box-shadow:inset 0 0 0 1px rgba(227,235,200,.04),
+            inset 0 0 42px rgba(4,28,17,.20),
+            0 11px 26px rgba(9,33,21,.18);
+ transition:background-color .28s ease,box-shadow .28s ease,border-color .28s ease;
+}
+html[data-theme="torus"] .torus-field[data-geometry-mode="flower"]::before {
+ content:"";
+ pointer-events:none;
+ position:absolute;inset:10% 11%;
+ z-index:-1;
+ border-radius:50%;
+ background:radial-gradient(ellipse at 50% 50%,rgba(240,222,154,.14),transparent 62%);
+ filter:blur(16px);
+}
+html[data-theme="torus"] .torus-field[data-geometry-mode="flower"] .torus-field__canvas {
+ position:relative;z-index:1;
+ filter:drop-shadow(0 0 5px rgba(246,221,154,.23));
+}
+html[data-theme="torus"][data-appearance="light"] .torus-field[data-geometry-mode="flower"] {
+ background-image:
+   radial-gradient(ellipse at 51% 47%,rgba(193,225,185,.27),transparent 55%),
+   radial-gradient(ellipse at 88% 8%,rgba(222,189,132,.16),transparent 48%),
+   linear-gradient(132deg,#315d48,#396a52 49%,#214736 100%)!important;
+ border-color:rgba(225,218,175,.26);
+}
+html[data-theme="torus"][data-appearance="dark"] .torus-field[data-geometry-mode="flower"] {
+ background-image:
+   radial-gradient(ellipse at 52% 48%,rgba(124,179,128,.22),transparent 55%),
+   radial-gradient(ellipse at 17% 10%,rgba(196,158,96,.11),transparent 49%),
+   linear-gradient(130deg,#112e24,#214837 48%,#132f26 100%)!important;
+ border-color:rgba(149,185,145,.24);
+}
+html[data-theme="torus"] .torus-field[data-geometry-mode="torus"] {
+ border-radius:17px;
+ background:transparent;
+ box-shadow:none;
+}
+
+/* Partner drawer — an editorial operations form rather than an unstructured
+   stack of fields. CSS and semantic fieldsets only; existing validation and
+   submit actions are unchanged. */
+html[data-theme="torus"] .drawer {
+ background:rgba(12,31,22,.47);
+ backdrop-filter:blur(5px);
+ -webkit-backdrop-filter:blur(5px);
+}
+html[data-theme="torus"] .drawer-panel[data-panel-type="partner"] {
+ width:min(100%,535px);
+ padding:24px;
+ gap:0;
+ background:linear-gradient(154deg,#eaf3e8,#e0ece3 65%,#eaf1e8);
+ border-left:1px solid rgba(140,171,140,.35);
+ box-shadow:-16px 0 50px rgba(7,34,20,.17);
+ scrollbar-gutter:stable;
+}
+html[data-theme="torus"] .partner-drawer-head {
+ position:sticky;top:-24px;z-index:3;
+ margin:-24px -24px 20px;
+ padding:24px 25px 18px;
+ background:linear-gradient(115deg,rgba(222,237,220,.98),rgba(235,245,228,.97));
+ border-bottom:1px solid rgba(99,143,104,.21);
+ backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);
+}
+html[data-theme="torus"] .partner-drawer-head::after {
+ content:"";pointer-events:none;position:absolute;
+ width:75px;height:75px;right:5px;top:2px;
+ background:url("assets/geometry-orbits.svg") center/contain no-repeat;
+ opacity:.09;
+}
+html[data-theme="torus"] .partner-drawer-kicker {
+ display:flex;align-items:center;gap:7px;
+ color:#65816b;font:600 10px/1.4 var(--font-sans);
+ letter-spacing:.13em;text-transform:uppercase;
+ margin-bottom:9px;
+}
+html[data-theme="torus"] .partner-drawer-dot {
+ display:block;flex:none;width:6px;height:6px;
+ border-radius:50%;background:#ba9e6d;
+ box-shadow:0 0 0 3px rgba(185,155,98,.13);
+}
+html[data-theme="torus"] .partner-drawer-head h2 {
+ margin:0 0 7px;
+ color:#315b42;
+ font:300 clamp(25px,2vw,31px)/1.15 var(--font-display);
+ letter-spacing:-.025em;
+}
+html[data-theme="torus"] .partner-drawer-head p {
+ color:#617663;font-size:12px;line-height:1.55;
+ max-width:50ch;
+}
+html[data-theme="torus"] .partner-form {
+ display:grid;grid-template-columns:minmax(0,1fr);
+ gap:16px;align-content:start;
+}
+html[data-theme="torus"] .partner-form-section {
+ grid-column:1/-1;min-width:0;
+ margin:0;padding:14px 15px 17px;
+ border:1px solid rgba(97,135,102,.24);
+ border-radius:16px;
+ background:linear-gradient(155deg,rgba(248,251,243,.78),rgba(234,241,231,.75));
+ box-shadow:0 3px 14px rgba(39,66,49,.045),inset 0 1px 0 rgba(255,255,255,.65);
+}
+html[data-theme="torus"] .partner-form-section legend {
+ padding:0 8px;
+ color:#42694b;
+ font:600 12px/1.5 var(--font-sans);
+}
+html[data-theme="torus"] .partner-form-section legend span {
+ font-size:11px;font-weight:500;color:#a28955;margin-right:7px;
+}
+html[data-theme="torus"] .partner-field-grid {
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:15px 13px;align-items:start;
+}
+html[data-theme="torus"] .partner-field-grid>.full {grid-column:1/-1;}
+html[data-theme="torus"] .partner-field-grid .field-label {
+ min-width:0;display:grid;gap:6px;
+ color:#4a6652;
+ font-size:12px;line-height:1.35;font-weight:500;
+}
+html[data-theme="torus"] .partner-field-grid .field {
+ min-height:43px;border-radius:11px;
+ border:1px solid #acc6b0;
+ background:#f7faf3;
+ color:#2c4836;
+ padding-inline:12px;
+ transition:border-color .18s,background-color .18s,box-shadow .18s;
+}
+html[data-theme="torus"] .partner-field-grid .field:hover {border-color:#7faba0;}
+html[data-theme="torus"] .partner-field-grid .field:focus-visible {
+ outline:none;border-color:#4e8b61;
+ box-shadow:0 0 0 3px rgba(95,160,113,.17);
+}
+html[data-theme="torus"] .partner-field-grid select.field {
+ padding-right:8px;text-overflow:ellipsis;
+}
+html[data-theme="torus"] .partner-form-submit {
+ grid-column:1/-1;
+ position:sticky;bottom:-24px;z-index:3;
+ margin:0 -24px -24px;
+ padding:16px 24px 20px;
+ background:linear-gradient(180deg,rgba(227,239,224,.94),rgba(218,233,221,.99));
+ border-top:1px solid rgba(112,152,116,.22);
+ backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+}
+html[data-theme="torus"] .partner-form-submit .top-actions {
+ display:flex;gap:9px;align-items:center;justify-content:flex-end;
+ width:100%;max-width:none;margin:0;
+}
+html[data-theme="torus"] .partner-form-submit .btn {
+ min-height:44px;padding:0 19px;border-radius:13px;
+ font-size:13px;
+}
+html[data-theme="torus"] .partner-form-submit .btn.primary {order:2;}
+html[data-theme="torus"] .partner-form-submit .btn:not(.primary) {order:1;}
+html[data-theme="torus"][data-appearance="dark"] .drawer-panel[data-panel-type="partner"] {
+ background:linear-gradient(153deg,#193b2c,#173329 72%,#1d4030);
+ border-left-color:#57735c;
+}
+html[data-theme="torus"][data-appearance="dark"] .partner-drawer-head {
+ background:linear-gradient(117deg,rgba(33,72,51,.98),rgba(31,64,46,.98));
+ border-bottom-color:#52765a;
+}
+html[data-theme="torus"][data-appearance="dark"] .partner-drawer-kicker,
+html[data-theme="torus"][data-appearance="dark"] .partner-drawer-head p {color:#bed5bc;}
+html[data-theme="torus"][data-appearance="dark"] .partner-drawer-head h2 {color:#f3dfbb;}
+html[data-theme="torus"][data-appearance="dark"] .partner-form-section {
+ background:linear-gradient(155deg,#274b38,#214231);
+ border-color:#4d7557;
+ box-shadow:0 3px 13px rgba(0,0,0,.12);
+}
+html[data-theme="torus"][data-appearance="dark"] .partner-form-section legend {color:#efd5a7;}
+html[data-theme="torus"][data-appearance="dark"] .partner-form-section legend span {color:#b6d0ac;}
+html[data-theme="torus"][data-appearance="dark"] .partner-field-grid .field-label {color:#c8ddc8;}
+html[data-theme="torus"][data-appearance="dark"] .partner-field-grid .field {
+ background:#17392a;color:#f1ead8;border-color:#5b8164;
+}
+html[data-theme="torus"][data-appearance="dark"] .partner-field-grid .field:hover {border-color:#92b391;}
+html[data-theme="torus"][data-appearance="dark"] .partner-field-grid .field:focus-visible {
+ border-color:#d0be8b;box-shadow:0 0 0 3px rgba(207,195,137,.20);
+}
+html[data-theme="torus"][data-appearance="dark"] .partner-form-submit {
+ background:linear-gradient(180deg,rgba(26,61,42,.96),rgba(21,53,36,.99));
+ border-color:#56785d;
+}
+html[data-theme="torus"][data-appearance="dark"] .partner-form-submit .btn:not(.primary) {
+ background:#2e5540;color:#f3e6ce;border-color:#6d946f;
+}
+@media(max-width:480px){
+ html[data-theme="torus"] .drawer-panel[data-panel-type="partner"] {width:100%;padding:15px;}
+ html[data-theme="torus"] .partner-drawer-head {margin:-15px -15px 15px;padding:18px 18px 15px;top:-15px;}
+ html[data-theme="torus"] .partner-form-section {padding:13px 12px 15px;}
+ html[data-theme="torus"] .partner-field-grid {grid-template-columns:1fr;gap:12px;}
+ html[data-theme="torus"] .partner-form-submit {bottom:-15px;margin:0 -15px -15px;padding:12px 15px 14px;}
+}
+@media(prefers-reduced-motion:reduce){
+ html[data-theme="torus"] .today-mini-popover,
+ html[data-theme="torus"] .partner-field-grid .field,
+ html[data-theme="torus"] .torus-field[data-geometry-mode="flower"] {
+  transition:none!important;animation:none!important;transform:none!important;
+ }
+}
+
+
+/* The Mandala mode already has labelled controls; avoid captions crossing
+   over the fine loops. Accessibility names remain on real controls. */
+html[data-theme="torus"] .torus-field[data-geometry-mode="flower"] .geometry-caption,
+html[data-theme="torus"] .torus-field[data-geometry-mode="flower"] .torus-field__attribution {opacity:0;pointer-events:none;}
+@media(max-width:860px){
+ html { scroll-padding-bottom:94px; }
+ html[data-theme="torus"] .torus-field__toolbar { scroll-margin-bottom:100px; }
+ html[data-theme="torus"] .torus-field__mode { scroll-margin-bottom:100px; }
+}

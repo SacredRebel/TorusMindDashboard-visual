@@ -153,60 +153,74 @@
   // Sculptural flower-of-life: depth-sorted petals orbit in three dimensions.
   // This is an original procedural interpretation paired with the client's
   // own torus22 artwork, not a frame-by-frame reproduction of the source video.
+  // Calm, sculptural flower-of-life with true projected depth.
+  // Keeps pointer orbit, pause, speed and reduced-motion behavior intact.
   function drawRosette(i,ctx) {
-    const compact=i.w<420, steps=compact?62:88;
-    const rings=[
-      {count:6, radius:.34, size:.52, z:-.18, hue:0},
-      {count:12, radius:.76, size:.48, z: .03, hue:1},
-      {count:18, radius:1.16, size:.35, z:.22, hue:2}
+    const steps = i.w < 420 ? 66 : 88;
+    const turn = i.time*.065 + i.orbitY*.33;
+    const tilt = clamp(i.orbitX*.38-.12,-.48,.48);
+    const cy=Math.cos(tilt), sy=Math.sin(tilt);
+    const scale=Math.min(i.w*.205,i.h*.255);
+    const projectPetal=(x,y,z)=>{
+      const rotX=x*Math.cos(turn)-y*Math.sin(turn);
+      const rotY=x*Math.sin(turn)+y*Math.cos(turn);
+      const tiltedY=rotY*cy-z*sy,depth=rotY*sy+z*cy;
+      const perspective=1+depth*.04;
+      return [i.w*.51+rotX*scale*perspective,i.h*.5+tiltedY*scale*perspective,depth];
+    };
+    ctx.save();
+    ctx.lineCap='round';
+    ctx.lineJoin='round';
+    const circles=[
+      {count:6,reach:.60,size:.66,phase:0},
+      {count:12,reach:1.12,size:.45,phase:.18},
+      {count:18,reach:1.50,size:.245,phase:.08}
     ];
     const petals=[];
-    for(const ring of rings)for(let k=0;k<ring.count;k++){
-      const a=TWO_PI*k/ring.count+(ring.hue===1?.10:-.04)+i.time*.016*(ring.hue%2?1:-1);
-      const centerDepth=ring.z+.19*Math.cos(a*2+i.time*.22);
-      petals.push({a,centerDepth,ring,k});
+    for(const ring of circles){
+      for(let k=0;k<ring.count;k++){
+        const a=2*Math.PI*k/ring.count+ring.phase;
+        const depth=.08*Math.sin(a*2+i.time*.18);
+        petals.push({ring,k,a,depth});
+      }
     }
-    petals.sort((a,b)=>a.centerDepth-b.centerDepth);
-    ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
-    for(const item of petals){
-      const {a,centerDepth,ring,k}=item;
-      const near=centerDepth>0;
+    petals.sort((a,b)=>a.depth-b.depth);
+    for(const {ring,k,a,depth} of petals){
       ctx.beginPath();
       for(let n=0;n<=steps;n++){
-        const theta=TWO_PI*n/steps;
-        const rr=ring.size*(1+.06*Math.sin(3*theta+i.time*.27));
-        const x=ring.radius*Math.cos(a)+rr*Math.cos(theta);
-        const y=ring.radius*Math.sin(a)+rr*Math.sin(theta);
-        const z=centerDepth+.18*Math.sin(theta*2+a+i.time*.24)+.10*Math.cos(theta+a*3);
-        const q=project(i,x,y,z);
-        if(!n)ctx.moveTo(q[0],q[1]);else ctx.lineTo(q[0],q[1]);
+        const u=2*Math.PI*n/steps;
+        const x=ring.reach*Math.cos(a)+ring.size*Math.cos(u);
+        const y=ring.reach*Math.sin(a)+ring.size*Math.sin(u);
+        const z=depth+.075*Math.sin(u*2+a+i.time*.20);
+        const q=projectPetal(x,y,z);
+        if(n===0)ctx.moveTo(q[0],q[1]); else ctx.lineTo(q[0],q[1]);
       }
-      const gold=k%3===0;
-      const alpha=near?.76:.31;
-      ctx.strokeStyle=gold?rgba(246,219,167,alpha):rgba(194,219,187,near?.63:.23);
-      ctx.lineWidth=near?(gold?1.13:.79):.60;
+      const back=depth<-.025;
+      const golden=k%3===0 || ring.count===6;
+      ctx.strokeStyle=golden?rgba(249,226,175,back?.36:.77):rgba(189,218,191,back?.26:.60);
+      ctx.lineWidth=ring.count===6?1.08:back?.56:.83;
       ctx.stroke();
     }
-    // Two thin tilted orbital rings emphasize volume and depth.
-    for(let ring=0;ring<2;ring++){
+    // A crisp, stabilizing center and two concentric dimensional orbit lines.
+    for(const [r,alpha] of [[.55,.53],[1.63,.32]]){
       ctx.beginPath();
       for(let n=0;n<=144;n++){
-        const a=TWO_PI*n/144;
-        const r=ring===0?.47:1.40;
-        const q=project(i,r*Math.cos(a),r*Math.sin(a),.23*Math.sin(a*3+i.time*.28)+(ring?.08:-.10));
-        if(!n)ctx.moveTo(q[0],q[1]);else ctx.lineTo(q[0],q[1]);
+        const a=2*Math.PI*n/144;
+        const q=projectPetal(r*Math.cos(a),r*Math.sin(a),.07*Math.sin(a*3+i.time*.14));
+        if(n===0)ctx.moveTo(q[0],q[1]); else ctx.lineTo(q[0],q[1]);
       }
-      ctx.strokeStyle=rgba(255,226,166,ring===0?.40:.23);
-      ctx.lineWidth=.85;ctx.stroke();
+      ctx.strokeStyle=rgba(246,217,156,alpha);
+      ctx.lineWidth=.78;
+      ctx.stroke();
     }
-    // Central golden seed: quiet light, without a distracting solid disc.
-    const c=project(i,0,0,.17);
-    const glow=ctx.createRadialGradient(c[0],c[1],1,c[0],c[1],Math.min(i.h,i.w)*.09);
-    glow.addColorStop(0,'rgba(255,228,169,.28)');
-    glow.addColorStop(.3,'rgba(218,211,165,.08)');
-    glow.addColorStop(1,'rgba(255,231,190,0)');
+    const c=projectPetal(0,0,.1);
+    const radius=Math.min(i.w,i.h)*.095;
+    const glow=ctx.createRadialGradient(c[0],c[1],1,c[0],c[1],radius);
+    glow.addColorStop(0,'rgba(255,236,175,.20)');
+    glow.addColorStop(.45,'rgba(222,208,163,.07)');
+    glow.addColorStop(1,'rgba(255,240,200,0)');
     ctx.fillStyle=glow;
-    ctx.beginPath();ctx.arc(c[0],c[1],Math.min(i.h,i.w)*.09,0,TWO_PI);ctx.fill();
+    ctx.beginPath();ctx.arc(c[0],c[1],radius,0,2*Math.PI);ctx.fill();
     ctx.restore();
   }
 

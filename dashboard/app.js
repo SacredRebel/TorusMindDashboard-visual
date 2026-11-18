@@ -511,26 +511,26 @@
   function torusSvg() { return `<svg class="torus" viewBox="0 0 220 130" aria-hidden="true">${Array.from({ length: 11 }, (_, i) => `<ellipse cx="110" cy="65" rx="${100 - i * 4}" ry="${18 + i * 4.2}" transform="rotate(${(i - 5) * 3} 110 65)"/>`).join('')}</svg>`; }
 
   /* ---------------- Drawers ---------------- */
-  function openDrawer(html, wide = false) { lastFocus = document.activeElement; const p = $('[data-drawer-panel]'); p.classList.toggle('wide', wide); p.innerHTML = html; $('[data-drawer]').hidden = false; ($('[data-drawer-panel] input, [data-drawer-panel] select, [data-drawer-panel] textarea') || $('[data-drawer-panel] button')).focus(); }
+  function openDrawer(html, wide = false) { lastFocus = document.activeElement; const p = $('[data-drawer-panel]'); p.classList.toggle('wide', wide); p.innerHTML = html; p.dataset.panelType = p.querySelector('form[data-form]')?.dataset.form || 'general'; $('[data-drawer]').hidden = false; ($('[data-drawer-panel] input, [data-drawer-panel] select, [data-drawer-panel] textarea') || $('[data-drawer-panel] button')).focus(); }
   function closeDrawer() { $('[data-drawer]').hidden = true; ui.importRows = null; lastFocus?.focus?.(); if (ui.pending) { ui.pending = false; rerender(); } }
   const actions = `<div class="top-actions full">BUTTON<button type="button" class="btn" data-act="close">Cancel</button></div>`;
   const creditOptions = (sel) => `<option value="">No specific provider or event</option><optgroup label="Referral partners">${opts(DATA.partners.map((p) => [p.id, `${p.contact} · ${p.org}`]), sel)}</optgroup><optgroup label="Events">${opts(DATA.events.map((e) => [e.id, `${e.name} (${fmt(e.date)})`]), sel)}</optgroup>`;
   function partnerForm(p = {}) {
-    openDrawer(`<h2 id="drawer-title">${p.id ? 'Edit ' + esc(p.contact) : 'Add a partner'}</h2>
-      <form class="form-grid" data-form="partner" data-id="${esc(p.id || '')}" novalidate>
-        <label class="field-label full">Contact name<input class="field" name="contact" value="${esc(p.contact)}" required aria-describedby="err-contact"><span class="err" id="err-contact" role="alert"></span></label>
+    openDrawer(`<div class="partner-drawer-head"><div class="partner-drawer-kicker"><span class="partner-drawer-dot"></span> Torus · Relationships</div><h2 id="drawer-title">${p.id ? 'Edit ' + esc(p.contact) : 'Add a partner'}</h2><p>Organize the connection, ownership, and next follow-up.</p></div>
+      <form class="form-grid partner-form" data-form="partner" data-id="${esc(p.id || '')}" novalidate>
+        <fieldset class="partner-form-section"><legend><span>01</span> Relationship details</legend><div class="partner-field-grid"><label class="field-label full">Contact name<input class="field" name="contact" value="${esc(p.contact)}" required aria-describedby="err-contact"><span class="err" id="err-contact" role="alert"></span></label>
         <label class="field-label full">Practice / organization<input class="field" name="org" value="${esc(p.org)}" required aria-describedby="err-org"><span class="err" id="err-org" role="alert"></span></label>
         <label class="field-label">Type<select class="field" name="type">${opts(TYPES, p.type)}</select></label>
         <label class="field-label">BD activity<select class="field" name="activity">${opts(ACTIVITIES.slice(0, 5).map((a) => [a.id, a.long]), p.activity)}</select></label>
         <label class="field-label">Specialty<input class="field" name="spec" value="${esc(p.spec)}"></label>
         <label class="field-label">City<input class="field" name="city" value="${esc(p.city)}"></label>
-        <label class="field-label">Status<select class="field" name="status">${opts(ALL_STATUS, p.status || 'Cold')}</select></label>
+        </div></fieldset><fieldset class="partner-form-section"><legend><span>02</span> Follow-up &amp; ownership</legend><div class="partner-field-grid"><label class="field-label">Status<select class="field" name="status">${opts(ALL_STATUS, p.status || 'Cold')}</select></label>
         <label class="field-label">Owner<select class="field" name="owner">${opts(OWNERS, p.owner || 'Torus team')}</select></label>
         <label class="field-label">Next follow-up<input class="field" type="date" name="next" value="${esc(p.id ? p.next : iso(d(3)))}"></label>
         <label class="field-label">Phone<input class="field" type="tel" name="phone" value="${esc(p.phone)}"></label>
         <label class="field-label full">Next step<input class="field" name="nextStep" value="${esc(p.nextStep)}" placeholder="e.g. Send intro letter"></label>
         <label class="field-label full">First met at (event)<select class="field" name="metAt"><option value="">Not met at an event</option>${opts(DATA.events.map((x) => [x.id, x.name]), p.metAt)}</select></label>
-        ${actions.replace('BUTTON', `<button class="btn primary">${p.id ? 'Save changes' : 'Add partner'}</button>`)}</form>`);
+        </div></fieldset><div class="partner-form-submit">${actions.replace('BUTTON', `<button class="btn primary">${p.id ? 'Save changes' : 'Add partner'}</button>`)}</div></form>`);
   }
   function touchForm(id) {
     const p = partner(id);

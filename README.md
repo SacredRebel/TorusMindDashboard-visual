@@ -71,3 +71,8 @@ See [the design, data, and synchronization guide](docs/CALENDAR-AND-EXPERIENCE-V
 ### Experience V4: focused usability refinements
 
 The previously approved V3 design is backed up in [`backup/pre-layout-refinement-v4-2026-11-17`](https://github.com/SacredRebel/TorusMindDashboard-visual/tree/backup/pre-layout-refinement-v4-2026-11-17). V4 fixes duplicate Today/Calendar headers, whole-cell calendar clicks, in-place Today day agendas, Pipeline cropping (responsive stage groups), oversized ROI chart spacing, unreadable Settings lists, daylight color separation and seamless route-specific Torus triangle artwork. The interactive Torus and 3D mandala remain; Supabase logic is unchanged. See [V4 release guide](docs/EXPERIENCE-V4-RELEASE.md).
+
+
+### Torus Experience V5 — subtle visual polish
+
+The last approved design is preserved in [`backup/pre-v5-surgical-polish-2026-11-17`](https://github.com/SacredRebel/TorusMindDashboard-visual/tree/backup/pre-v5-surgical-polish-2026-11-17). V5 fixes the literal escaped-newline HTML bug that put an unwanted strip above the app, removes repeating sacred-geometry wallpaper from cards, refines the 3D mandala's green atmosphere in both themes, eliminates stretched Today's empty card area, and gives Add Partner a structured, responsive, accessible form. **No business workflow, API or data-contract changes.** See [V5 release guide](docs/EXPERIENCE-V5-POLISH.md).
