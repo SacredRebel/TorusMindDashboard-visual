@@ -65,3 +65,7 @@ The v1 Torus branding, torus field, mandala, colors, sacred geometry, and naviga
 
 ## Experience V3
 See [CALENDAR-AND-EXPERIENCE-V3.md](CALENDAR-AND-EXPERIENCE-V3.md) for the new interactive calendar, corrected pipeline, hover-only logo motion, light/dark theme, live Supabase contract, and Google Sheets integration boundaries. Changes are additive, not a rebuild.
+
+
+## Experience V4 — preserved and corrected
+See [the V4 release and verification guide](EXPERIENCE-V4-RELEASE.md) for single-page headers, an in-place Today agenda, whole-cell calendar click behavior, responsive Pipeline stage groups, ROI and Settings organization, distinct client-sourced triangle textures and new depth-projected mandala. The V3 backup remains available.

@@ -66,3 +66,8 @@ The previous finished design is preserved in branch [`backup/pre-calendar-liquid
 The working v2 design is preserved in the backup branch `backup/pre-calendar-pipeline-theme-2026-11-17`. V3 adds an accessible Month/Week/Agenda calendar, partner/event editing on selected days, CSV export for Google Sheets, a properly contained scrollable pipeline, interactive logo flourish, and a persistent forest-green dark theme. There is **no live Sheets sync** until an approved Sheet and credentials are connected; the existing Supabase save/realtime path remains intact.
 
 See [the design, data, and synchronization guide](docs/CALENDAR-AND-EXPERIENCE-V3.md). Run `python scripts/experience_regression.py`, `python scripts/visual_regression.py`, `python scripts/func.py`, and `python scripts/live_test.py` to verify the implementation. No new runtime dependencies were added.
+
+
+### Experience V4: focused usability refinements
+
+The previously approved V3 design is backed up in [`backup/pre-layout-refinement-v4-2026-11-17`](https://github.com/SacredRebel/TorusMindDashboard-visual/tree/backup/pre-layout-refinement-v4-2026-11-17). V4 fixes duplicate Today/Calendar headers, whole-cell calendar clicks, in-place Today day agendas, Pipeline cropping (responsive stage groups), oversized ROI chart spacing, unreadable Settings lists, daylight color separation and seamless route-specific Torus triangle artwork. The interactive Torus and 3D mandala remain; Supabase logic is unchanged. See [V4 release guide](docs/EXPERIENCE-V4-RELEASE.md).

@@ -1,3 +1,5 @@
+> **Update — Experience V4:** Today calendar cells now open an inline agenda on Today (not the full calendar). The Pipeline now uses paginated complete stage groups instead of a clipped horizontal board. See [the V4 guide](EXPERIENCE-V4-RELEASE.md).
+
 # Torus Mind & Medicine — Experience V3
 
 **Design contract:** This is an additive refinement of the approved Torus dashboard. The previous torus, mandala, brand artwork, moss/gold palette, structure, navigation, API model, and business workflow remain. No rewrite or React migration.

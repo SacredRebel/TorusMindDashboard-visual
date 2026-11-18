@@ -21,13 +21,13 @@ async def run():
         await page.goto(base+'#calendar')
         await page.wait_for_timeout(240)
         assert await page.locator('.cal-cell').count()==42,'42 calendar dates'
-        assert await page.locator('.theme-switch').count()==1,'theme toggle'
+        assert await page.locator('.theme-switch:visible').count()==1,'theme toggle'
         assert (await page.evaluate('document.documentElement.scrollWidth'))<=width+2,'calendar horizontal overflow'
-        title=await page.locator('.cal-header h2').inner_text()
+        title=await page.locator('.cal-header h1').inner_text()
         await page.locator('[data-month="1"]').last.click()
-        assert await page.locator('.cal-header h2').inner_text()!=title,'month nav'
+        assert await page.locator('.cal-header h1').inner_text()!=title,'month nav'
         await page.locator('.cal-header [data-month="0"]').click()
-        assert await page.locator('.cal-header h2').inner_text()==title,'go to today'
+        assert await page.locator('.cal-header h1').inner_text()==title,'go to today'
         await page.locator('[data-cal-mode="week"]').click()
         assert await page.locator('.cal-cell').count()==7,'week view'
         await page.locator('[data-cal-mode="agenda"]').click()
@@ -85,25 +85,26 @@ async def run():
         board=page.locator('[data-board]')
         assert await board.count()==1
         board_width=await board.evaluate('e=>({scroll:e.scrollWidth,client:e.clientWidth})')
-        assert board_width['scroll']>board_width['client'],'board horizontal scrolling'
+        assert board_width['scroll']<=board_width['client']+2,'board should show full columns'
         badge_over=await page.evaluate("""() => [...document.querySelectorAll('.tile')].flatMap(t=>[...t.querySelectorAll('.top-actions .chip')].map(c=>({clip:c.getBoundingClientRect().right-t.getBoundingClientRect().right,text:c.textContent}))).filter(x=>x.clip>1)""")
         assert not badge_over,'badges overflow cards '+str(badge_over[:5])
         # Verify stage selector writes to same demo partner record.
         sel=page.locator('.col').first.locator('.tile select').first
         current=await sel.input_value()
         await sel.select_option('Warm' if current!='Warm' else 'Cold')
+        await page.locator('[data-pipeline-jump="1"]').click()
         assert await page.locator('.col[data-col="Warm"] .tile').count()>0
-        await page.locator('[data-board-scroll="1"]').click()
+        await page.locator('[data-pipeline-page="1"]').click()
         await page.wait_for_timeout(270)
-        assert await board.evaluate('e=>e.scrollLeft')>0
+        assert await page.locator('.pipeline-stage-tab[aria-pressed="true"]').count()>0
         # dark theme and route persistence
-        await page.locator('.theme-switch').click()
+        await page.locator('.theme-switch:visible').click()
         assert await page.evaluate("document.documentElement.dataset.appearance")=='dark'
         await page.goto(base+'#partners')
         assert await page.evaluate("document.documentElement.dataset.appearance")=='dark'
         await page.reload()
         assert await page.evaluate("document.documentElement.dataset.appearance")=='dark'
-        await page.locator('.theme-switch').click()
+        await page.locator('.theme-switch:visible').click()
         assert await page.evaluate("document.documentElement.dataset.appearance")=='light'
         # logo reaction without idle animation
         if width>860:
@@ -112,9 +113,9 @@ async def run():
           assert 'is-awake' in (await page.locator('.brand-identity').get_attribute('class') or '')
         # overview mini-calendar cross-page selection
         await page.goto(base+'#today')
-        await page.locator('.today-day[data-cal-day="2026-11-24"]').click()
-        assert page.url.endswith('#calendar'),'mini calendar route'
-        assert 'Tuesday' in await page.locator('.cal-day-panel h3').inner_text()
+        await page.locator('.today-day[data-mini-day="2026-11-24"]').click()
+        assert page.url.endswith('#today'),'Today mini calendar should remain on Today'
+        assert 'Tuesday' in await page.locator('.today-mini-pop-head h3').inner_text()
         assert not errors,errors
         print('PASS',width,'calendar modes, CSV, create/edit event, board bounds, theme persistence, mini calendar, browser errors 0')
         await ctx.close()

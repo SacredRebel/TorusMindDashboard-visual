@@ -186,7 +186,7 @@
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const opts = (list, sel) => list.map((o) => { const [v, l] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(v)}"${v === sel ? ' selected' : ''}>${esc(l)}</option>`; }).join('');
   const view = $('[data-view]');
-  const ui = { state: 'ready', q: '', status: '', activity: '', via: '', pact: '', sort: 'next', dir: 1, range: 90, prange: 'all', month: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1), calSelected:iso(TODAY), calMode:'month',calFilter:'all', pending: false, importRows: null };
+  const ui = { state: 'ready', q: '', status: '', activity: '', via: '', pact: '', sort: 'next', dir: 1, range: 90, prange: 'all', month: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1), calSelected:iso(TODAY), todaySelected:'', pipelinePage:0, calMode:'month',calFilter:'all', pending: false, importRows: null };
   let lastFocus = null;
 
   const ICON = {
@@ -238,8 +238,8 @@
       const upcoming = DATA.events.filter((e) => days(e.date) >= 0).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
       const delta = tm.leads - lm.leads, soon = attention.length - late.length;
       const who = 'Torus team';
-      return `<section class="card welcome today-hero"><div><h2>${greeting()}${who ? ', ' + esc(who) : ''}</h2><p>${late.length ? `${plural(late.length, 'follow-up')} overdue and ${soon} due in the next two days.` : soon ? `No follow-ups are overdue. ${soon} due in the next two days.` : 'No follow-ups are overdue.'} ${met} of ${sc.length} playbook targets are met so far.</p>
-          <a class="btn" href="#partners">Open follow-ups</a></div>${torusSvg()}</section>
+      return `<section class="card welcome today-hero"><div><h1>${greeting()}${who ? ', ' + esc(who) : ''}</h1><p>${late.length ? `${plural(late.length, 'follow-up')} overdue and ${soon} due in the next two days.` : soon ? `No follow-ups are overdue. ${soon} due in the next two days.` : 'No follow-ups are overdue.'} ${met} of ${sc.length} playbook targets are met so far.</p>
+          <div class="today-hero-actions"><a class="btn" href="#partners">Open follow-ups</a><button type="button" class="today-quick-add" data-act="add-partner">+ Partner</button><span class="page-theme-slot" data-theme-slot></span></div></div>${torusSvg()}</section>
         
         <div class="today-workspace"><section class="card today-focus"><div class="card-head"><h2>Needs attention</h2><a href="#partners">All partners</a></div>
             <div class="rows">${withState(attention, { msg: DATA.partners.length ? 'Nothing is due in the next two days.' : 'No referral partners yet. Add the first one.', btn: 'Add a partner', act: 'add-partner' }, (items) => items.slice(0, 4).map((p) => `<a class="row" href="#partner-${esc(p.id)}"><span><span class="row-title">${esc(p.nextStep || 'Follow up')}</span><small>${esc(p.contact)} · ${esc(p.org)}${p.owner ? ' · ' + esc(p.owner) : ''}</small></span>${dueChip(p)}</a>`).join(''))}</div></section>
@@ -312,8 +312,14 @@
     },
 
     pipeline() {
-      return `<div class="pipeline-intro"><p>Move relationships forward by dragging a card or using <strong>Move to</strong>. The board scrolls horizontally; every change uses the same saved partner record.</p><div class="pipeline-controls"><small>Explore stages</small><button type="button" data-board-scroll="-1" aria-label="Scroll pipeline stages left">‹</button><button type="button" data-board-scroll="1" aria-label="Scroll pipeline stages right">›</button></div></div>
-        <div class="board" data-board aria-label="Relationship pipeline stages" tabindex="0">${STAGES.map((s) => { const items = DATA.partners.filter((p) => p.status === s);
+      const visible=window.innerWidth<760?1:window.innerWidth<1190?2:3;
+      const pages=Math.ceil(STAGES.length/visible);
+      ui.pipelinePage=Math.max(0,Math.min(pages-1,ui.pipelinePage||0));
+      const start=ui.pipelinePage*visible,stages=STAGES.slice(start,start+visible);
+      const groups=STAGES.map((stage,i)=>`<button type="button" class="pipeline-stage-tab" data-pipeline-jump="${i}" aria-pressed="${i>=start&&i<start+visible}"><span>${esc(stage)}</span><b>${DATA.partners.filter(p=>p.status===stage).length}</b></button>`).join('');
+      return `<div class="pipeline-intro"><p>Move relationships forward through six stages. Drag within the visible group, or use <strong>Move to</strong> for any stage.</p><div class="pipeline-controls"><small>Stages ${start+1}–${start+stages.length} of ${STAGES.length}</small><button type="button" data-pipeline-page="-1" aria-label="Previous pipeline stages" ${ui.pipelinePage===0?'disabled':''}>‹</button><button type="button" data-pipeline-page="1" aria-label="Next pipeline stages" ${ui.pipelinePage===pages-1?'disabled':''}>›</button></div></div>
+        <div class="pipeline-stage-tabs" role="group" aria-label="Jump to pipeline stage">${groups}</div>
+        <div class="board pipeline-board" style="--stage-visible:${visible}" data-board aria-label="Relationship pipeline stages" tabindex="0">${stages.map((s) => { const items = DATA.partners.filter((p) => p.status === s);
         return `<section class="col" data-col="${esc(s)}" aria-label="${esc(s)}"><h2><span>${esc(s)}</span><span class="num">${items.length}</span></h2>
           ${items.map((p) => `<article class="tile" draggable="true" data-drag="${esc(p.id)}"><a href="#partner-${esc(p.id)}">${esc(p.contact)}</a><small>${esc(p.org)}</small>
             <div class="top-actions">${actChip(p.activity)}${p.next ? dueChip(p) : ''}</div>
@@ -341,11 +347,15 @@
 
     sources() {
       const r = ui.range, roi = activityRoi(r), src = sourceStats(r), maxRev = Math.max(1, ...roi.map((a) => Math.max(a.revenue, a.spend))), sc = scorecard();
+      const revenueTotal=roi.reduce((sum,x)=>sum+x.revenue,0),costTotal=roi.reduce((sum,x)=>sum+x.spend,0);
       const seg = `<div class="seg" role="group" aria-label="Time range">${[[30, '30 days'], [90, '90 days'], ['all', 'All time']].map(([v, l]) => `<button data-range="${v}" aria-pressed="${String(ui.range) === String(v)}">${l}</button>`).join('')}</div>`;
       return `<div class="toolbar">${seg}<span class="muted">Leads count by month. Revenue counts packages only; Spravato is billed to insurance and shows $0.</span></div>
-        <div class="bento">
-        <section class="card span-7"><div class="card-head"><h2>Revenue vs. cost by BD activity</h2></div><div class="bars">${roi.map((a) => `<div class="bar-row wide"><span><i class="dot" style="background:${a.color}"></i> ${esc(a.name)}</span><div><div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${(a.revenue / maxRev) * 100}%;background:${a.color}"></div></div><div class="bar-track" aria-hidden="true" style="height:6px;margin-top:4px"><div class="bar-fill" style="width:${(a.spend / maxRev) * 100}%;background:var(--border-strong)"></div></div></div><span class="num">${money(a.revenue)} <span class="muted">/ ${money(a.spend)}</span></span></div>`).join('')}</div><div class="legend"><span><i class="dot" style="background:var(--chart-1)"></i>Revenue (thick)</span><span><i class="dot" style="background:var(--border-strong)"></i>Cost: cash + hours × ${money(DATA.settings.staffCost)}/hr (thin)</span></div></section>
-        <section class="card span-5"><div class="card-head"><h2>Playbook scorecard</h2><span class="muted">From opening</span></div>${sc.map(scoreRow).join('')}</section>
+        <div class="bento roi-overview">
+        <section class="card span-7 roi-revenue"><div class="card-head"><h2>Revenue vs. cost by BD activity</h2></div>
+          <div class="roi-summary"><div><small>Revenue</small><strong>${money(revenueTotal)}</strong></div><div><small>Cash + staff time</small><strong>${money(costTotal)}</strong></div><div><small>Return</small><strong>${costTotal?(revenueTotal/costTotal).toFixed(1)+'×':'—'}</strong></div></div><div class="bars">${roi.map((a) => `<div class="bar-row wide"><span><i class="dot" style="background:${a.color}"></i> ${esc(a.name)}</span><div><div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${(a.revenue / maxRev) * 100}%;background:${a.color}"></div></div><div class="bar-track" aria-hidden="true" style="height:6px;margin-top:4px"><div class="bar-fill" style="width:${(a.spend / maxRev) * 100}%;background:var(--border-strong)"></div></div></div><span class="num">${money(a.revenue)} <span class="muted">/ ${money(a.spend)}</span></span></div>`).join('')}</div><div class="legend"><span><i class="dot" style="background:var(--chart-1)"></i>Revenue (thick)</span><span><i class="dot" style="background:var(--border-strong)"></i>Cost: cash + hours × ${money(DATA.settings.staffCost)}/hr (thin)</span></div></section>
+        <section class="card span-5 roi-scorecard"><div class="card-head"><h2>Playbook scorecard</h2><span class="muted">${sc.filter(isMet).length} of ${sc.length} met</span></div>
+          ${sc.slice(0,5).map(scoreRow).join('')}
+          ${sc.length>5?`<details class="roi-more"><summary>View ${sc.length-5} more milestones</summary><div>${sc.slice(5).map(scoreRow).join('')}</div></details>`:''}</section>
         <section class="card span-12 table-wrap" style="padding:0"><div class="card-head" style="padding:var(--space-5) var(--space-5) 0"><h2>By BD activity</h2></div><table class="cards"><thead><tr><th>Activity</th><th class="right">Partners</th><th class="right">Active</th><th class="right">Touches</th><th class="right">Events</th><th class="right">Leads</th><th class="right">Consults</th><th class="right">Converted</th><th class="right">Revenue ÷ cost</th></tr></thead><tbody>${roi.map((a) => `<tr><td><i class="dot" style="background:${a.color}"></i> ${esc(a.long)}</td><td class="right num" data-label="Partners">${a.partners}</td><td class="right num" data-label="Active">${a.active}</td><td class="right num" data-label="Touches">${a.touches}</td><td class="right num" data-label="Events">${a.events}</td><td class="right num" data-label="Leads">${a.leads}</td><td class="right num" data-label="Consults">${a.consults}</td><td class="right num" data-label="Converted">${a.conv}</td><td class="right num" data-label="Return">${a.spend ? (a.revenue / a.spend).toFixed(1).replace(/\.0$/, '') + '×' : '–'}</td></tr>`).join('')}</tbody></table></section>
         <section class="card span-12 table-wrap" style="padding:0"><div class="card-head" style="padding:var(--space-5) var(--space-5) 0"><h2>By referral source</h2><span class="muted">Matches the IntakeQ "How did you hear about us?" field</span></div><table class="cards"><thead><tr><th>Source</th><th class="right">Leads</th><th class="right">Consults</th><th class="right">Converted</th><th class="right">Conversion</th><th class="right">Revenue</th></tr></thead><tbody>${src.map((s) => `<tr><td>${esc(s.name)}</td><td class="right num" data-label="Leads">${s.leads}</td><td class="right num" data-label="Consults">${s.consults}</td><td class="right num" data-label="Converted">${s.conv}</td><td class="right num" data-label="Conversion">${s.leads ? pct(s.conv / s.leads) : '–'}</td><td class="right num" data-label="Revenue">${money(s.revenue)}</td></tr>`).join('')}</tbody></table></section>
         </div>`;
@@ -372,7 +382,7 @@
         <div class="cal-entry-copy"><a href="${esc(x.href)}">${esc(x.label)}</a><small>${esc(x.sub)}</small></div>
         <button type="button" class="cal-entry-edit" data-act="${x.kind==='event'?'edit-event':'edit-partner'}" data-id="${esc(x.id)}" aria-label="Edit ${esc(x.label)}">Edit</button>
       </div>`;
-      const renderCell=c=>`<div role="gridcell" class="cal-cell${c.dt.getMonth()!==m.getMonth()?' is-outside':''}${c.key===iso(TODAY)?' is-today':''}${c.key===selected?' is-selected':''}" aria-selected="${c.key===selected}">
+      const renderCell=c=>`<div role="gridcell" data-cal-cell="${c.key}" class="cal-cell${c.dt.getMonth()!==m.getMonth()?' is-outside':''}${c.key===iso(TODAY)?' is-today':''}${c.key===selected?' is-selected':''}" aria-selected="${c.key===selected}">
         <button class="cal-date" type="button" data-cal-day="${c.key}" aria-label="Select ${esc(c.dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}))}, ${c.items.length} scheduled"><span>${c.dt.getDate()}</span><small>${c.items.length||''}</small></button>
         <div class="cal-items">${c.items.slice(0,mode==='week'?6:3).map(x=>`<a class="cal-chip ${x.kind}${x.late?' late':''}" href="${esc(x.href)}" title="${esc(x.label)} — ${esc(x.sub)}"><i></i><span>${esc(x.label)}</span></a>`).join('')}${c.items.length>(mode==='week'?6:3)?`<button type="button" class="cal-more" data-cal-day="${c.key}">+${c.items.length-(mode==='week'?6:3)} more</button>`:''}</div>
         <div class="cal-mobile-dots">${c.items.slice(0,4).map(x=>`<i class="${x.kind}"></i>`).join('')}</div>
@@ -384,10 +394,10 @@
           ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(x=>`<div class="cal-weekday" role="columnheader">${x}</div>`).join('')}${cells.map(renderCell).join('')}</div>`;
       return `<section class="calendar-suite" aria-label="Torus calendar">
         <div class="cal-header">
-          <div><span class="cal-eyebrow">Cycles &amp; connections</span><h2>${esc(title)}</h2><p>${monthItems.length} scheduled · ${monthItems.filter(x=>x.kind==='follow').length} follow-ups · ${monthItems.filter(x=>x.kind==='event').length} events</p></div>
+          <div><span class="cal-eyebrow">Calendar · Cycles &amp; connections</span><h1>${esc(title)}</h1><p>${monthItems.length} scheduled · ${monthItems.filter(x=>x.kind==='follow').length} follow-ups · ${monthItems.filter(x=>x.kind==='event').length} events</p></div>
           <div class="cal-header-actions">
             <div class="cal-month-nav" role="group" aria-label="Navigate months"><button type="button" data-month="-1" aria-label="Previous month">‹</button><button type="button" data-month="0">Today</button><button type="button" data-month="1" aria-label="Next month">›</button></div>
-            <button type="button" class="btn primary" data-act="calendar-add-event">+ New event</button>
+            <button type="button" class="btn primary" data-act="calendar-add-event">+ New event</button><span class="page-theme-slot" data-theme-slot></span>
           </div>
         </div>
         <div class="cal-tools">
@@ -408,22 +418,27 @@
 
     setup() {
       const isAdmin = !LIVE || me?.role === 'admin';
-      return `<div class="bento">
-        <section class="card span-6"><h2>Practice settings</h2><p class="muted" style="margin:var(--space-1) 0 var(--space-4)">These drive the playbook's 30/60/90-day targets and the cost side of the return figures.</p>
+      return `<div class="bento settings-grid">
+        <section class="card span-6 settings-card settings-practice"><h2>Practice settings</h2><p class="muted" style="margin:var(--space-1) 0 var(--space-4)">These drive the playbook's 30/60/90-day targets and the cost side of the return figures.</p>
           <form class="grid" data-form="settings" novalidate>
             <label class="field-label">Practice opening date<input class="field" type="date" name="openDate" value="${esc(DATA.settings.openDate)}" required></label>
             <label class="field-label">Staff time cost (dollars per hour)<input class="field" type="number" min="0" step="5" name="staffCost" value="${DATA.settings.staffCost}" required aria-describedby="err-staffCost"><span class="err" id="err-staffCost" role="alert"></span></label>
             <div><button class="btn primary">Save settings</button></div></form></section>
-        <section class="card span-6"><h2>Data connection</h2>
+        <section class="card span-6 settings-card settings-connection"><h2>Data connection</h2>
           ${LIVE ? `<p style="margin:var(--space-2) 0"><span class="chip success">Live</span> Saved to the Torus database. Changes appear on every open screen.</p><p class="muted">Signed in as ${esc(session?.user?.email)}${me ? ` · ${esc(me.role)}` : ''}.</p>`
             : `<p style="margin:var(--space-2) 0"><span class="chip warning">Demo</span> Sample data only. Changes last until you close the page.</p><p class="muted">To go live, add the Supabase URL and anon key to Vercel. The steps are in docs/SETUP.md in the repo.</p>`}
           <p class="muted" style="margin-top:var(--space-3)">Patient leads are stored as monthly counts only. Patient details stay in IntakeQ.</p></section>
-        <section class="card span-6"><h2>Team</h2><p class="muted" style="margin:var(--space-1) 0 var(--space-4)">Only these emails can sign in and see Torus data.${isAdmin ? '' : ' Ask an admin to add someone.'}</p>
+        <section class="card span-6 settings-card settings-team"><h2>Team</h2><p class="muted" style="margin:var(--space-1) 0 var(--space-4)">Only these emails can sign in and see Torus data.${isAdmin ? '' : ' Ask an admin to add someone.'}</p>
           <div class="rows">${withState(DATA.team, { msg: LIVE ? 'No team members yet.' : 'The team list appears here once the database is connected.' }, (items) => items.map((m) => `<div class="row" style="cursor:default"><span><span class="row-title">${esc(m.name || m.email)}</span><small>${esc(m.email)} · ${esc(m.role)}</small></span>${isAdmin && LIVE && m.email !== session?.user?.email ? `<button class="btn small" data-act="remove-member" data-id="${esc(m.email)}">Remove ${esc(m.name || m.email)}</button>` : ''}</div>`).join(''))}</div>
           ${LIVE && isAdmin ? `<form class="form-grid" data-form="member" novalidate style="margin-top:var(--space-4)"><label class="field-label">Email<input class="field" type="email" name="email" required aria-describedby="err-email"><span class="err" id="err-email" role="alert"></span></label><label class="field-label">Name<input class="field" name="name"></label><label class="field-label">Role<select class="field" name="role">${opts([['member', 'Member'], ['admin', 'Admin']])}</select></label><div class="full"><button class="btn primary">Add team member</button></div></form>` : ''}</section>
-        <section class="card span-6"><h2>Dropdown lists</h2><p class="muted" style="margin:var(--space-1) 0 var(--space-4)">Same wording as the playbook and the IntakeQ form. Keep the referral sources identical to the form.</p>
-          <dl class="facts" style="margin:0"><div><dt>Pipeline stages</dt><dd>${STAGES.map(esc).join(' → ')}</dd></div><div><dt>Referral sources</dt><dd>${SOURCES.map(esc).join(', ')}</dd></div><div><dt>Came in via</dt><dd>${CHANNELS.map(esc).join(', ')}</dd></div><div><dt>Packages (placeholder prices)</dt><dd>${Object.entries(PACKAGES).filter(([k]) => k !== 'None yet').map(([k, v]) => `${esc(k)} ${v ? money(v) : '(insurance)'}`).join(', ')}</dd></div></dl></section>
-        <section class="card span-6"><h2>Preview a data state</h2><p class="muted" style="margin:var(--space-1) 0 var(--space-4)">For reviewing the design. Every list and chart can show each of these.</p>
+        <section class="card span-6 settings-card settings-lists"><h2>Dropdown lists</h2><p class="muted" style="margin:var(--space-1) 0 var(--space-4)">Same wording as the playbook and the IntakeQ form. Keep the referral sources identical to the form.</p>
+          <div class="settings-lists-stack">
+          ${settingsList('Pipeline stages',STAGES)}
+          ${settingsList('Referral sources',SOURCES)}
+          ${settingsList('Came in via',CHANNELS)}
+          ${settingsList('Packages (illustrative)',Object.entries(PACKAGES).filter(([k])=>k!=='None yet').map(([k,v])=>k+' · '+(v?money(v):'Insurance')))}
+          </div></section>
+        <section class="card span-6 settings-card settings-preview"><h2>Preview a data state</h2><p class="muted" style="margin:var(--space-1) 0 var(--space-4)">For reviewing the design. Every list and chart can show each of these.</p>
           <label class="field-label">Data state<select class="field" data-state>${opts([['ready', 'Populated'], ['loading', 'Loading'], ['empty', 'Empty'], ['error', 'Error']], ui.state)}</select></label></section>
       </div>`;
     },
@@ -449,6 +464,20 @@
     const a=document.createElement('a');a.href=url;a.download='torus-calendar-'+iso(TODAY)+'.csv';
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
+  function settingsList(name,items){
+    return `<details class="settings-choice"><summary><span>${esc(name)}</span><span class="settings-count">${items.length} items</span></summary><div class="settings-tokens">${items.map(x=>`<span>${esc(x)}</span>`).join('')}</div></details>`;
+  }
+
+  function miniDayDetails(key){
+    if(!key)return '';
+    const list=calendarItems().filter(x=>x.date===key);
+    const label=fmt(key,{weekday:'long',month:'short',day:'numeric'});
+    return `<section class="today-mini-popover" aria-label="${esc(label)} schedule">
+      <div class="today-mini-pop-head"><div><small>Selected day</small><h3>${esc(label)}</h3><p>${list.length} scheduled</p></div><button type="button" data-mini-close aria-label="Close selected day">×</button></div>
+      <div class="today-mini-pop-rows">${list.length?list.map(x=>`<div class="today-mini-pop-row"><i class="${x.kind}"></i><span><a href="${esc(x.href)}">${esc(x.label)}</a><small>${esc(x.sub)}</small></span><button type="button" data-act="${x.kind==='event'?'edit-event':'edit-partner'}" data-id="${esc(x.id)}">Edit</button></div>`).join(''):'<p class="today-mini-empty">Nothing scheduled. A little room to breathe.</p>'}</div>
+      <button type="button" class="today-mini-new-event" data-act="calendar-add-event">+ Add an event</button></section>`;
+  }
+
   function miniCalendar(upcoming) {
     const m=ui.month;
     const first=new Date(m.getFullYear(),m.getMonth(),1);
@@ -464,8 +493,8 @@
       const key=iso(d),items=byDate.get(key)||[];
       const off=d.getMonth()!==m.getMonth(),now=key===iso(TODAY);
       const name=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-      return `<a class="today-day${off?' is-outside':''}${now?' is-today':''}${items.length?' has-items':''}" href="#calendar" data-cal-day="${key}" aria-label="${esc(name)}, ${items.length} scheduled" title="Open ${esc(name)} in calendar">
-        <span class="today-day-number">${d.getDate()}</span><span class="today-day-dots" aria-hidden="true">${items.slice(0,3).map(x=>`<i class="${x.kind}"></i>`).join('')}</span></a>`;
+      return `<button type="button" class="today-day${off?' is-outside':''}${now?' is-today':''}${items.length?' has-items':''}" data-mini-day="${key}" aria-pressed="${ui.todaySelected===key}" aria-label="${esc(name)}, ${items.length} scheduled" title="Show ${esc(name)} here on Today">
+        <span class="today-day-number">${d.getDate()}</span><span class="today-day-dots" aria-hidden="true">${items.slice(0,3).map(x=>`<i class="${x.kind}"></i>`).join('')}</span></button>`;
     }).join('');
     const upcomingList=upcoming.slice(0,1).map(e=>`<a class="today-upcoming-event" href="#event-${esc(e.id)}"><span class="today-event-mark" aria-hidden="true"></span><span><b>${esc(e.name)}</b><small>${esc(fmt(e.date,{weekday:'short',month:'short',day:'numeric'}))}</small></span><span aria-hidden="true">↗</span></a>`).join('');
     return `<section class="card today-mini-calendar" aria-label="Monthly calendar and upcoming events">
@@ -474,7 +503,7 @@
       <div class="today-mini-month-actions"><button class="today-mini-month-btn" type="button" data-month="-1" aria-label="Previous month">‹</button><button class="today-mini-month-btn is-now" type="button" data-month="0" aria-label="Back to current month">Today</button><button class="today-mini-month-btn" type="button" data-month="1" aria-label="Next month">›</button></div></div>
       <div class="today-mini-grid" role="group" aria-label="${esc(m.toLocaleDateString('en-US',{month:'long',year:'numeric'}))} days">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<span class="today-weekday">${d}</span>`).join('')}${cells}</div>
       <div class="today-mini-footer"><span class="today-mini-legend"><i class="follow"></i> Follow-up <i class="event"></i> Event</span><a href="#calendar">View schedule <span aria-hidden="true">↗</span></a></div>
-      <div class="today-upcoming"><div class="today-upcoming-label">Up next</div>${upcomingList||'<p class="muted">No upcoming events scheduled.</p>'}</div></section>`;
+      <div class="today-mini-agenda" data-today-agenda aria-live="polite">${miniDayDetails(ui.todaySelected)}</div><div class="today-upcoming"><div class="today-upcoming-label">Up next</div>${upcomingList||'<p class="muted">No upcoming events scheduled.</p>'}</div></section>`;
   }
 
   function kpi(label, value, sub, tone = '') { return `<div class="card kpi"><span>${esc(label)}</span><b class="num">${esc(value)}</b><small class="${tone}">${esc(sub)}</small></div>`; }
@@ -656,12 +685,46 @@
 
   /* ---------------- Events ---------------- */
   document.addEventListener('click', async (e) => {
-    const t = e.target.closest('[data-act],[data-sort],[data-range],[data-prange],[data-month],[data-cal-day],[data-cal-mode],[data-cal-filter],tr[data-href]');
+    if(e.target.closest('.cal-cell a[href]')) return;
+    const t = e.target.closest('[data-act],[data-sort],[data-range],[data-prange],[data-month],[data-cal-day],[data-cal-cell],[data-mini-day],[data-mini-close],[data-pipeline-page],[data-pipeline-jump],[data-cal-mode],[data-cal-filter],tr[data-href]');
     if (!t) { if (e.target.matches('[data-drawer]')) closeDrawer(); return; }
     if (t.matches('tr[data-href]')) { if (!e.target.closest('a,button,select')) location.hash = t.dataset.href; return; }
     if (t.dataset.sort) { ui.dir = ui.sort === t.dataset.sort ? -ui.dir : 1; ui.sort = t.dataset.sort; rerender(); return; }
     if (t.dataset.range) { ui.range = t.dataset.range === 'all' ? 'all' : +t.dataset.range; rerender(); return; }
     if (t.dataset.prange) { ui.prange = t.dataset.prange === 'all' ? 'all' : +t.dataset.prange; rerender(); return; }
+    if(t.dataset.pipelinePage){
+      const n=window.innerWidth<760?1:window.innerWidth<1190?2:3;
+      ui.pipelinePage=Math.max(0,Math.min(Math.ceil(STAGES.length/n)-1,(ui.pipelinePage||0)+Number(t.dataset.pipelinePage)));
+      rerender();return;
+    }
+    if(t.dataset.pipelineJump!==undefined){
+      const n=window.innerWidth<760?1:window.innerWidth<1190?2:3;
+      ui.pipelinePage=Math.floor(Number(t.dataset.pipelineJump)/n);rerender();return;
+    }
+    if(t.dataset.miniDay){
+      e.preventDefault();
+      const key=t.dataset.miniDay;
+      ui.todaySelected=ui.todaySelected===key?'':key;
+      ui.calSelected=key;
+      const dest=document.querySelector('[data-today-agenda]');
+      if(dest)dest.innerHTML=miniDayDetails(ui.todaySelected);
+      document.querySelectorAll('[data-mini-day]').forEach(el=>{
+        el.setAttribute('aria-pressed',String(ui.todaySelected===el.dataset.miniDay));
+        el.classList.toggle('is-selected',ui.todaySelected===el.dataset.miniDay);
+      });
+      return;
+    }
+    if(t.hasAttribute('data-mini-close')){
+      ui.todaySelected='';
+      const dest=document.querySelector('[data-today-agenda]');if(dest)dest.textContent='';
+      document.querySelectorAll('[data-mini-day]').forEach(el=>{el.classList.remove('is-selected');el.setAttribute('aria-pressed','false');});
+      return;
+    }
+    if(t.dataset.calCell){
+      ui.calSelected=t.dataset.calCell;
+      const dt=parse(ui.calSelected);ui.month=new Date(dt.getFullYear(),dt.getMonth(),1);
+      rerender();return;
+    }
     if(t.dataset.calMode){ui.calMode=t.dataset.calMode;rerender();return;}
     if(t.dataset.calFilter){ui.calFilter=t.dataset.calFilter;rerender();return;}
     if(t.dataset.calDay){

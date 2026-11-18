@@ -11,25 +11,35 @@
   ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 13.2A8.4 8.4 0 0 1 10.8 3.5a8.7 8.7 0 1 0 9.7 9.7Z"/></svg>'
   : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2m10-10h-2M4 12H2m17.1-7.1-1.4 1.4M6.3 17.7l-1.4 1.4m14.2 0-1.4-1.4M6.3 6.3 4.9 4.9"/></svg>';
  function renderSwitch(){
-   const actions=document.querySelector('[data-actions]');
-   if(!actions)return;
-   let button=actions.querySelector('[data-theme-switch]');
-   if(!button){
-     button=document.createElement('button');button.type='button';
-     button.className='theme-switch';button.dataset.themeSwitch='';
-     button.addEventListener('click',()=>{
-       mode=mode==='dark'?'light':'dark';
-       root.dataset.appearance=mode;
-       try{localStorage.setItem(KEY,mode);}catch(_){}
-       renderSwitch();
-     });
-     actions.appendChild(button);
+   const targets=[document.querySelector('[data-actions]'),...document.querySelectorAll('[data-theme-slot]')].filter(Boolean);
+   for(const actions of targets){
+     let button=actions.querySelector(':scope > [data-theme-switch]');
+     if(!button){
+       button=document.createElement('button');button.type='button';
+       button.className='theme-switch';button.dataset.themeSwitch='';
+       button.addEventListener('click',()=>{
+         mode=mode==='dark'?'light':'dark';
+         root.dataset.appearance=mode;
+         try{localStorage.setItem(KEY,mode);}catch(_){}
+         renderSwitch();
+       });
+       actions.appendChild(button);
+     }
+     const dark=mode==='dark';
+     button.innerHTML=svg(!dark)+'<span>'+(dark?'Daylight':'Night grove')+'</span>';
+     button.setAttribute('aria-label',dark?'Switch to daylight theme':'Switch to night grove theme');
+     button.setAttribute('aria-pressed',String(dark));
+     button.title=dark?'Switch to daylight theme':'Switch to night grove theme';
    }
-   const dark=mode==='dark';
-   button.innerHTML=svg(!dark)+'<span>'+(dark?'Daylight':'Night grove')+'</span>';
-   button.setAttribute('aria-label',dark?'Switch to daylight theme':'Switch to night grove theme');
-   button.setAttribute('aria-pressed',String(dark));
-   button.title=dark?'Switch to daylight theme':'Switch to night grove theme';
+ }
+ function syncHeaderArt(){
+   for(const header of [document.querySelector('.top'),document.querySelector('.cal-header')].filter(Boolean)){
+     if(header.querySelector(':scope > .brand-header-media'))continue;
+     const media=document.createElement('span');
+     media.className='brand-header-media';media.setAttribute('aria-hidden','true');
+     const tri=document.createElement('span');tri.className='brand-header-triangle';
+     media.appendChild(tri);header.appendChild(media);
+   }
  }
  function setupLogo(){
    const logo=document.querySelector('.brand-identity');
@@ -56,9 +66,15 @@
    setupLogo();renderSwitch();
    const actions=document.querySelector('[data-actions]');
    if(actions){
-     const observer=new MutationObserver(()=>renderSwitch());
+     const observer=new MutationObserver(()=>{renderSwitch();syncHeaderArt();});
      observer.observe(actions,{childList:true});
    }
+   const view=document.querySelector('[data-view]');
+   if(view){
+     const observer=new MutationObserver(()=>{renderSwitch();syncHeaderArt();});
+     observer.observe(view,{childList:true});
+   }
+   syncHeaderArt();
    // Calendar keyboard: arrows move one day/week; Home/End select week edges;
    // PageUp/PageDown move across months. Selection always reaches the same data layer.
    document.addEventListener('keydown',e=>{
