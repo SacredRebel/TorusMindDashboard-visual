@@ -418,9 +418,9 @@
       <div class="board pipeline-board" style="--stage-visible:${visible}" data-board aria-label="Relationship pipeline stages" tabindex="0">
         ${stages.map(stage=>{
           const items=filtered.filter(p=>p.status===stage);
-          return `<section class="col" data-col="${esc(stage)}" aria-label="${esc(stage)}">
+          return `<section class="col" data-col="${esc(stage)}" data-stage="${esc(stage)}" aria-label="${esc(stage)}">
             <h2><span>${esc(stage)}</span><span class="num">${items.length}</span></h2>
-            ${items.map(p=>`<article class="tile pipeline-tile" draggable="true" data-drag="${esc(p.id)}">
+            ${items.map(p=>`<article class="tile pipeline-tile" data-stage="${esc(stage)}" draggable="true" data-drag="${esc(p.id)}">
               <div class="pipeline-tile-top"><label title="Select ${esc(p.contact)}"><input type="checkbox" data-pipe-select="${esc(p.id)}" ${ui.pipelineSelected.has(p.id)?'checked':''} aria-label="Select ${esc(p.contact)}"></label><a href="#partner-${esc(p.id)}">${esc(p.contact)}</a></div>
               <small>${esc(p.org)}</small><div class="top-actions">${actChip(p.activity)}${p.next?dueChip(p):'<span class="chip">No follow-up</span>'}</div>
               <div class="pipeline-card-meta"><span>Owner <b>${esc(p.owner||'Torus team')}</b></span><span>Last touch <b>${lastTouchDate(p.id)?esc(fmt(lastTouchDate(p.id))):'–'}</b></span></div>

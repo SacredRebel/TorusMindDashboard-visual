@@ -81,3 +81,7 @@ See [V6 calendar and settings guide](EXPERIENCE-V6-CALENDAR-OPERATIONS.md) for c
 
 ## Experience V7
 Read [V7 operational design and brand guide](EXPERIENCE-V7-UI-WORKFLOWS.md). Its heading compositions use page-specific original Torus images near the title and sacred geometry on the opposite side; darker charcoal-green Night Grove and warmer Daylight colors improve legibility.
+
+
+## Experience V8
+Read [V8 visual finish](EXPERIENCE-V8-VISUAL-FINISH.md) for the verified background-layer rendering fix, transparent original geometry treatment, warm theme palettes and the six colored CRM pipeline stages.

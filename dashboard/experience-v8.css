@@ -1,0 +1,388 @@
+/* Torus Mind & Medicine — V8 surgical visual finish.
+   Preserves Torus's original sacred geometry and artwork, all V7 layouts and CRM
+   behavior. Fixes the actual one-layer gradient/two-layer-size square-patch bug. */
+
+html[data-theme="torus"][data-appearance="light"] {
+  --v8-flower:url("assets/geometry-flower-v8-light.svg");
+  --v8-orbits:url("assets/geometry-orbits-v8-light.svg");
+  --v8-mandala:url("assets/geometry-mandala-v8-light.svg");
+  --bg:#e7e9de;--surface:#f5f4ea;--surface-2:#f9f7ef;
+  --surface-sunken:#e2e9db;--border:#abb9a6;--border-strong:#859a85;
+  --text:#2b4032;--text-muted:#526554;--text-subtle:#596959;--heading:#3c503e;
+  --control-border:#839785;--accent:#375f46;--accent-hover:#294d38;
+}
+html[data-theme="torus"][data-appearance="dark"] {
+  --v8-flower:url("assets/geometry-flower-v8-dark.svg");
+  --v8-orbits:url("assets/geometry-orbits-v8-dark.svg");
+  --v8-mandala:url("assets/geometry-mandala-v8-dark.svg");
+  --bg:#292d29;--surface:#333a33;--surface-2:#404740;
+  --surface-sunken:#2b332d;--border:#778477;--border-strong:#92a092;
+  --text:#f1e8d8;--text-muted:#d5d0c1;--text-subtle:#c9c5b8;
+  --heading:#f1dfbf;--control-border:#95a18f;--accent:#b9cda9;
+  --accent-hover:#d1dbbc;--focus:#e5d09f;
+}
+html[data-theme="torus"] {
+  --v8-header-art:var(--v8-orbits);
+}
+html[data-theme="torus"][data-screen="partners"],
+html[data-theme="torus"][data-screen="partner"],
+html[data-theme="torus"][data-screen="setup"],
+html[data-theme="torus"][data-screen="calendar"] {
+  --v8-header-art:var(--v8-flower);
+}
+html[data-theme="torus"][data-screen="patients"],
+html[data-theme="torus"][data-screen="events"],
+html[data-theme="torus"][data-screen="event"] {
+  --v8-header-art:var(--v8-mandala);
+}
+
+/* Root cause fix: V5 sized card backgrounds as "ornament 150px, gradient cover".
+   V7 replaced those two layers with ONE gradient. CSS reused the first 150px
+   background-size, causing opaque pale squares instead of a full-card surface.
+   The gradient now always covers the entire card. Ornament is a separate span. */
+html[data-theme="torus"][data-appearance="light"] .card:not(.welcome):not(.signin),
+html[data-theme="torus"][data-appearance="dark"] .card:not(.welcome):not(.signin),
+html[data-theme="torus"] .settings-column>.settings-card {
+  background-size:cover!important;
+  background-position:center!important;
+  background-repeat:no-repeat!important;
+}
+html[data-theme="torus"][data-appearance="light"] .card:not(.welcome):not(.signin) {
+  background-image:linear-gradient(148deg,#f6f5ec 0%,#eaece2 100%)!important;
+  border-color:#b8c5af!important;
+}
+html[data-theme="torus"][data-appearance="dark"] .card:not(.welcome):not(.signin) {
+  background-image:linear-gradient(148deg,#383f37 0%,#323930 100%)!important;
+  border-color:#758171!important;
+}
+/* Prevent two old ::before/::after backgrounds from drawing a phantom square.
+   Every ornament is now an explicit child with its own transparent SVG layer. */
+html[data-theme="torus"] .torus-ornament-host {
+  position:relative;isolation:isolate;
+}
+html[data-theme="torus"] .torus-ornament-host > :not(.torus-card-ornament) {
+  position:relative;z-index:1;
+}
+html[data-theme="torus"] .torus-card-ornament {
+  display:block!important;
+  position:absolute!important;right:9px;top:7px;
+  width:134px;height:134px;
+  z-index:0!important;pointer-events:none!important;
+  background-repeat:no-repeat!important;background-position:center!important;
+  background-size:contain!important;
+  opacity:.53;
+  mask-image:radial-gradient(circle at 50% 50%,#000 40%,rgba(0,0,0,.66) 61%,transparent 79%);
+  -webkit-mask-image:radial-gradient(circle at 50% 50%,#000 40%,rgba(0,0,0,.66) 61%,transparent 79%);
+  transition:opacity .4s ease,transform .5s cubic-bezier(.2,.8,.2,1);
+}
+html[data-theme="torus"] .torus-card-ornament[data-pattern="flower"] {background-image:var(--v8-flower)!important;}
+html[data-theme="torus"] .torus-card-ornament[data-pattern="orbits"] {background-image:var(--v8-orbits)!important;}
+html[data-theme="torus"] .torus-card-ornament[data-pattern="mandala"] {background-image:var(--v8-mandala)!important;}
+html[data-theme="torus"][data-appearance="dark"] .torus-card-ornament {opacity:.39;}
+html[data-theme="torus"] .torus-ornament-host:hover>.torus-card-ornament {
+  opacity:.64;transform:rotate(4deg) scale(1.045);
+}
+html[data-theme="torus"][data-appearance="dark"] .torus-ornament-host:hover>.torus-card-ornament {opacity:.51;}
+/* Keep small utility cards restrained; SVG never covers controls. */
+html[data-theme="torus"] .kpi .torus-card-ornament,
+html[data-theme="torus"] .settings-card .torus-card-ornament,
+html[data-theme="torus"] .today-focus .torus-card-ornament,
+html[data-theme="torus"] .today-mini-calendar .torus-card-ornament {
+  width:112px;height:112px;right:7px;top:7px;opacity:.39;
+}
+html[data-theme="torus"][data-appearance="dark"] .settings-card .torus-card-ornament {opacity:.37;}
+
+/* Card background contrast must remain legible regardless of the geometry. */
+html[data-theme="torus"][data-appearance="light"] body {color:#2b4032;}
+html[data-theme="torus"][data-appearance="light"] .main {
+  background:linear-gradient(137deg,#e7eadf,#e1e6dc 58%,#e9e9dc)!important;
+}
+html[data-theme="torus"][data-appearance="dark"] body {
+  background:#292d29!important;color:#f1e8d8;
+}
+html[data-theme="torus"][data-appearance="dark"] .main {
+  background:linear-gradient(137deg,#2d322d,#292f2a 58%,#2b302b)!important;
+}
+html[data-theme="torus"][data-appearance="dark"] .side {
+  background:linear-gradient(170deg,#29352e,#212b26 72%,#202823)!important;
+}
+html[data-theme="torus"][data-appearance="light"] .card h2,
+html[data-theme="torus"][data-appearance="light"] .settings-card h2 {color:#334c3b!important;}
+html[data-theme="torus"][data-appearance="dark"] .card h2,
+html[data-theme="torus"][data-appearance="dark"] .settings-card h2 {color:#f0dfc0!important;}
+html[data-theme="torus"][data-appearance="light"] .card .muted,
+html[data-theme="torus"][data-appearance="light"] .card small,
+html[data-theme="torus"][data-appearance="light"] .card dt,
+html[data-theme="torus"][data-appearance="light"] .card .field-label {color:#536552;}
+html[data-theme="torus"][data-appearance="dark"] .card .muted,
+html[data-theme="torus"][data-appearance="dark"] .card small,
+html[data-theme="torus"][data-appearance="dark"] .card dt,
+html[data-theme="torus"][data-appearance="dark"] .card .field-label {color:#d2d4c5;}
+html[data-theme="torus"][data-appearance="light"] .card .facts dd {color:#314a38;}
+html[data-theme="torus"][data-appearance="dark"] .card .facts dd {color:#f0e6d5;}
+/* Header theme toggle was almost invisible on the previous Daylight screenshot. */
+html[data-theme="torus"][data-appearance="light"] .top .theme-switch,
+html[data-theme="torus"][data-appearance="light"] .cal-header .theme-switch,
+html[data-theme="torus"][data-appearance="light"] .settings-page-controls .theme-switch {
+  background:#edf2e6!important;color:#30543e!important;
+  border:1px solid #9baE96!important;box-shadow:0 4px 13px rgba(39,70,45,.07)!important;
+}
+html[data-theme="torus"][data-appearance="dark"] .top .theme-switch,
+html[data-theme="torus"][data-appearance="dark"] .cal-header .theme-switch,
+html[data-theme="torus"][data-appearance="dark"] .settings-page-controls .theme-switch {
+  background:#49534a!important;color:#f4e6c9!important;
+  border:1px solid #a2aa95!important;
+}
+html[data-theme="torus"][data-appearance="dark"] .top,
+html[data-theme="torus"][data-appearance="dark"] .cal-header,
+html[data-theme="torus"][data-appearance="dark"] .settings-page-intro {
+  background:linear-gradient(117deg,#3d453e,#364039 70%,#404b40)!important;
+  border-color:#788877!important;
+}
+html[data-theme="torus"][data-appearance="light"] .top,
+html[data-theme="torus"][data-appearance="light"] .cal-header,
+html[data-theme="torus"][data-appearance="light"] .settings-page-intro {
+  background:linear-gradient(116deg,#f4f2e7,#e8eddf 65%,#e1e7d9)!important;
+  border-color:#b3c3ad!important;
+}
+
+/* Original Torus photo triangle: more exposed, still below text and controls. */
+html[data-theme="torus"] .top .brand-header-triangle,
+html[data-theme="torus"] .cal-header .brand-header-triangle,
+html[data-theme="torus"] .settings-page-intro .brand-header-triangle {
+  left:clamp(230px,30%,430px)!important;top:51%!important;right:auto!important;
+  width:clamp(145px,15vw,205px)!important;height:clamp(142px,15vw,192px)!important;
+  opacity:.69!important;
+  background-image:var(--header-photo)!important;
+  clip-path:var(--header-orientation)!important;
+  filter:sepia(.09) saturate(.91) contrast(1.04) brightness(1.02)!important;
+  transform:translateY(-50%) rotate(var(--header-tilt))!important;
+  transition:opacity .38s,transform .55s cubic-bezier(.2,.8,.2,1)!important;
+}
+html[data-theme="torus"][data-appearance="dark"] .top .brand-header-triangle,
+html[data-theme="torus"][data-appearance="dark"] .cal-header .brand-header-triangle,
+html[data-theme="torus"][data-appearance="dark"] .settings-page-intro .brand-header-triangle {
+  opacity:.62!important;filter:sepia(.18) saturate(.74) brightness(.92) contrast(1.08)!important;
+}
+html[data-theme="torus"] .top:hover .brand-header-triangle,
+html[data-theme="torus"] .cal-header:hover .brand-header-triangle,
+html[data-theme="torus"] .settings-page-intro:hover .brand-header-triangle {
+  opacity:.82!important;
+  transform:translateY(-50%) rotate(calc(var(--header-tilt) + 2deg)) scale(1.025)!important;
+}
+html[data-theme="torus"] .top .brand-header-media::before,
+html[data-theme="torus"] .cal-header .brand-header-media::before,
+html[data-theme="torus"] .settings-page-intro .brand-header-media::before {
+  content:""!important;
+  background:var(--v8-header-art) calc(100% + 24px) center/224px 224px no-repeat!important;
+  opacity:.77!important;filter:none!important;
+}
+html[data-theme="torus"][data-appearance="dark"] .brand-header-media::before {opacity:.64!important;}
+html[data-theme="torus"] .top .brand-header-media::after,
+html[data-theme="torus"] .cal-header .brand-header-media::after,
+html[data-theme="torus"] .settings-page-intro .brand-header-media::after {
+  background:radial-gradient(ellipse at 80% 50%,rgba(238,212,164,.07),transparent 60%)!important;
+}
+@media(max-width:760px) {
+  html[data-theme="torus"] .top .brand-header-triangle,
+  html[data-theme="torus"] .cal-header .brand-header-triangle,
+  html[data-theme="torus"] .settings-page-intro .brand-header-triangle {
+    left:54%!important;width:126px!important;height:136px!important;opacity:.33!important;
+  }
+  html[data-theme="torus"] .top .brand-header-media::before,
+  html[data-theme="torus"] .cal-header .brand-header-media::before,
+  html[data-theme="torus"] .settings-page-intro .brand-header-media::before {
+    background-size:154px 154px!important;
+    background-position:calc(100% + 34px) center!important;opacity:.48!important;
+  }
+}
+
+/* Pipeline columns ARE the six stages. Tint the whole column, tiles and controls.
+   Transparent highlights create subtle liquid depth without expensive filters. */
+html[data-theme="torus"] .pipeline-board .col[data-stage] {
+  position:relative;isolation:isolate;overflow:hidden;
+  background:linear-gradient(147deg,var(--stage-surface-a),var(--stage-surface-b))!important;
+  border:1px solid var(--stage-line)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.26),0 6px 19px rgba(37,57,35,.075)!important;
+}
+html[data-theme="torus"] .pipeline-board .col[data-stage]::before {
+  content:"";position:absolute;pointer-events:none;inset:0;z-index:0;
+  background:radial-gradient(ellipse at 15% 0%,rgba(255,255,255,.26),transparent 57%)!important;
+}
+html[data-theme="torus"] .pipeline-board .col[data-stage]::after {
+  content:"";position:absolute;pointer-events:none;right:-33px;bottom:-27px;
+  width:162px;height:162px;z-index:0;opacity:.20;
+  background:var(--v8-orbits) center/contain no-repeat!important;
+}
+html[data-theme="torus"] .pipeline-board .col[data-stage] > * {position:relative;z-index:1;}
+html[data-theme="torus"] .pipeline-board .col[data-stage] > h2 {
+  color:var(--stage-heading)!important;
+  border-bottom:1px solid var(--stage-line)!important;
+}
+html[data-theme="torus"] .pipeline-board .col[data-stage] .num {
+  background:var(--stage-count-bg)!important;color:var(--stage-heading)!important;
+}
+html[data-theme="torus"] .pipeline-board .tile[data-stage] {
+  position:relative;isolation:isolate;
+  background:radial-gradient(circle at 92% 0%,rgba(255,255,255,.26),transparent 36%),
+             linear-gradient(146deg,var(--stage-tile-a),var(--stage-tile-b))!important;
+  border:1px solid var(--stage-tile-line)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.24),0 4px 10px rgba(29,49,36,.07)!important;
+  color:var(--stage-text)!important;
+}
+html[data-theme="torus"] .pipeline-board .tile[data-stage]::after {
+  content:"";position:absolute;right:-9px;top:-13px;
+  width:80px;height:80px;pointer-events:none;z-index:0;
+  background:var(--v8-flower) center/contain no-repeat!important;opacity:.17;
+  mask-image:radial-gradient(circle,#000 35%,transparent 79%);
+}
+html[data-theme="torus"] .pipeline-board .tile[data-stage]>* {position:relative;z-index:1;}
+html[data-theme="torus"] .pipeline-board .tile[data-stage] a,
+html[data-theme="torus"] .pipeline-board .tile[data-stage] .pipeline-card-meta b,
+html[data-theme="torus"] .pipeline-board .tile[data-stage] .pipeline-step {
+  color:var(--stage-text)!important;
+}
+html[data-theme="torus"] .pipeline-board .tile[data-stage] small,
+html[data-theme="torus"] .pipeline-board .tile[data-stage] .field-label,
+html[data-theme="torus"] .pipeline-board .tile[data-stage] .pipeline-card-meta {
+  color:var(--stage-muted)!important;
+}
+html[data-theme="torus"] .pipeline-board .tile[data-stage] .pipeline-step {
+  background:var(--stage-step)!important;line-height:1.5;
+}
+html[data-theme="torus"] .pipeline-board .tile[data-stage] .field,
+html[data-theme="torus"] .pipeline-board .tile[data-stage] .pipeline-card-actions button {
+  background:var(--stage-control)!important;
+  color:var(--stage-text)!important;
+  border-color:var(--stage-tile-line)!important;
+}
+html[data-theme="torus"] .pipeline-board .tile[data-stage]:hover {
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 10px 21px rgba(34,50,34,.13)!important;
+}
+
+/* Distinct warm stage sequence in Daylight */
+html[data-theme="torus"][data-appearance="light"] .pipeline-board .col[data-stage="Cold"] {
+  --stage-surface-a:#dce8df;--stage-surface-b:#cbded1;
+  --stage-tile-a:#f1f6ef;--stage-tile-b:#e5f0e8;
+  --stage-line:#a5bea9;--stage-tile-line:#bacfbe;--stage-heading:#2f5943;
+  --stage-count-bg:#eaf2e8;--stage-text:#284938;--stage-muted:#4c6656;
+  --stage-step:#dceae0;--stage-control:#f6f9f3;
+}
+html[data-theme="torus"][data-appearance="light"] .pipeline-board .col[data-stage="Warm"] {
+  --stage-surface-a:#e6ebd5;--stage-surface-b:#d8e0c1;
+  --stage-tile-a:#f6f7e9;--stage-tile-b:#e9eed7;
+  --stage-line:#b5c399;--stage-tile-line:#c8d2ad;--stage-heading:#4b6035;
+  --stage-count-bg:#eef2db;--stage-text:#414f35;--stage-muted:#606c50;
+  --stage-step:#e2e9d0;--stage-control:#f8f8ed;
+}
+html[data-theme="torus"][data-appearance="light"] .pipeline-board .col[data-stage="Sent materials"] {
+  --stage-surface-a:#f0e5cf;--stage-surface-b:#e7d7b9;
+  --stage-tile-a:#fbf4e6;--stage-tile-b:#f1e7d1;
+  --stage-line:#c8b18a;--stage-tile-line:#dcc8a9;--stage-heading:#74542d;
+  --stage-count-bg:#f7ecd6;--stage-text:#64472e;--stage-muted:#78634c;
+  --stage-step:#eee0c4;--stage-control:#fcf7ed;
+}
+html[data-theme="torus"][data-appearance="light"] .pipeline-board .col[data-stage="Meeting scheduled"] {
+  --stage-surface-a:#efdfd1;--stage-surface-b:#e2cdbb;
+  --stage-tile-a:#faf0e7;--stage-tile-b:#f1e2d7;
+  --stage-line:#c7a995;--stage-tile-line:#dcc3b0;--stage-heading:#784d36;
+  --stage-count-bg:#f5e7db;--stage-text:#6a4838;--stage-muted:#7b6356;
+  --stage-step:#ebd8ca;--stage-control:#fdf5ef;
+}
+html[data-theme="torus"][data-appearance="light"] .pipeline-board .col[data-stage="Referral made"] {
+  --stage-surface-a:#e9dcda;--stage-surface-b:#d9c7c3;
+  --stage-tile-a:#f7eeeb;--stage-tile-b:#ecdfdb;
+  --stage-line:#bda5a3;--stage-tile-line:#d4bdb6;--stage-heading:#734d46;
+  --stage-count-bg:#f3e4df;--stage-text:#654942;--stage-muted:#76615c;
+  --stage-step:#e9d7d1;--stage-control:#faf5f1;
+}
+html[data-theme="torus"][data-appearance="light"] .pipeline-board .col[data-stage="Active referrer"] {
+  --stage-surface-a:#d3e3d8;--stage-surface-b:#bed5c6;
+  --stage-tile-a:#eaf4ed;--stage-tile-b:#dcece1;
+  --stage-line:#93b29e;--stage-tile-line:#b5ccba;--stage-heading:#285b43;
+  --stage-count-bg:#e0ede4;--stage-text:#28503d;--stage-muted:#52705b;
+  --stage-step:#d1e5d8;--stage-control:#f2f8f2;
+}
+
+/* Night Grove is charcoal with muted earth stage tints, never pure black/neon. */
+html[data-theme="torus"][data-appearance="dark"] .pipeline-board .col[data-stage="Cold"] {
+  --stage-surface-a:#414b43;--stage-surface-b:#37433c;
+  --stage-tile-a:#4a564a;--stage-tile-b:#3f4b41;
+  --stage-line:#85978a;--stage-tile-line:#859989;--stage-heading:#e1e9d2;
+  --stage-count-bg:#505e51;--stage-text:#f0eadb;--stage-muted:#d4dbcd;
+  --stage-step:#46554a;--stage-control:#344338;
+}
+html[data-theme="torus"][data-appearance="dark"] .pipeline-board .col[data-stage="Warm"] {
+  --stage-surface-a:#4b503e;--stage-surface-b:#414739;
+  --stage-tile-a:#585d49;--stage-tile-b:#494f3f;
+  --stage-line:#9ba484;--stage-tile-line:#9faa8e;--stage-heading:#ebe6ca;
+  --stage-count-bg:#5b634c;--stage-text:#f0ead9;--stage-muted:#dfdcc7;
+  --stage-step:#515844;--stage-control:#3c4739;
+}
+html[data-theme="torus"][data-appearance="dark"] .pipeline-board .col[data-stage="Sent materials"] {
+  --stage-surface-a:#574d3b;--stage-surface-b:#493f32;
+  --stage-tile-a:#605542;--stage-tile-b:#514535;
+  --stage-line:#a99474;--stage-tile-line:#b5a07e;--stage-heading:#f0dfbd;
+  --stage-count-bg:#675743;--stage-text:#f5e9d2;--stage-muted:#e2d3bb;
+  --stage-step:#5b4e3b;--stage-control:#453b30;
+}
+html[data-theme="torus"][data-appearance="dark"] .pipeline-board .col[data-stage="Meeting scheduled"] {
+  --stage-surface-a:#59473c;--stage-surface-b:#4b3c33;
+  --stage-tile-a:#655044;--stage-tile-b:#554337;
+  --stage-line:#ad937d;--stage-tile-line:#b69d85;--stage-heading:#f0dbbf;
+  --stage-count-bg:#6b5245;--stage-text:#f7e8d3;--stage-muted:#e7d3bf;
+  --stage-step:#5b483b;--stage-control:#483a32;
+}
+html[data-theme="torus"][data-appearance="dark"] .pipeline-board .col[data-stage="Referral made"] {
+  --stage-surface-a:#574442;--stage-surface-b:#483937;
+  --stage-tile-a:#654e4b;--stage-tile-b:#54413f;
+  --stage-line:#a98e88;--stage-tile-line:#b89d96;--stage-heading:#f5ded1;
+  --stage-count-bg:#684f4c;--stage-text:#f7e7d9;--stage-muted:#e6d2ca;
+  --stage-step:#584541;--stage-control:#433633;
+}
+html[data-theme="torus"][data-appearance="dark"] .pipeline-board .col[data-stage="Active referrer"] {
+  --stage-surface-a:#395345;--stage-surface-b:#30483b;
+  --stage-tile-a:#496250;--stage-tile-b:#3b5444;
+  --stage-line:#85a28e;--stage-tile-line:#94ab98;--stage-heading:#e2edda;
+  --stage-count-bg:#4c6955;--stage-text:#f0ecdd;--stage-muted:#d4e1d2;
+  --stage-step:#435d4d;--stage-control:#2f4639;
+}
+html[data-theme="torus"][data-appearance="dark"] .pipeline-board .col[data-stage] {
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 7px 19px rgba(0,0,0,.12)!important;
+}
+html[data-theme="torus"][data-appearance="dark"] .pipeline-board .col[data-stage]::before {
+  background:radial-gradient(ellipse at 16% 0%,rgba(255,245,216,.085),transparent 64%)!important;
+}
+
+/* Shared card details, controls and ROI data retain high text contrast. */
+html[data-theme="torus"][data-appearance="light"] .roi-overview .card small,
+html[data-theme="torus"][data-appearance="light"] .roi-overview .bar-row,
+html[data-theme="torus"][data-appearance="light"] .roi-overview .score small,
+html[data-theme="torus"][data-appearance="light"] .settings-integration small {
+  color:#4f6553!important;
+}
+html[data-theme="torus"][data-appearance="dark"] .roi-overview .card small,
+html[data-theme="torus"][data-appearance="dark"] .roi-overview .bar-row,
+html[data-theme="torus"][data-appearance="dark"] .settings-integration small {
+  color:#d7d4c2!important;
+}
+html[data-theme="torus"][data-appearance="dark"] .settings-column>.settings-card {
+  background-image:linear-gradient(147deg,#3b4238,#343b34)!important;
+}
+html[data-theme="torus"][data-appearance="light"] .settings-column>.settings-card {
+  background-image:linear-gradient(147deg,#f5f4ea,#eaede2)!important;
+}
+html[data-theme="torus"][data-appearance="dark"] .settings-card select.field,
+html[data-theme="torus"][data-appearance="dark"] .settings-card input.field {
+  background:#303a32!important;color:#f2e9d6!important;border-color:#95a593!important;
+}
+@media(max-width:600px){
+  html[data-theme="torus"] .torus-card-ornament {width:101px;height:101px;opacity:.36;}
+  html[data-theme="torus"] .pipeline-board .col[data-stage]::after {width:115px;height:115px;}
+}
+@media(prefers-reduced-motion:reduce){
+  html[data-theme="torus"] .torus-card-ornament,
+  html[data-theme="torus"] .brand-header-triangle {transition:none!important;}
+  html[data-theme="torus"] .torus-ornament-host:hover>.torus-card-ornament {transform:none!important;}
+}
+

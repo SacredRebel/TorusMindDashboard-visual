@@ -88,3 +88,8 @@ The approved V5 is backed up at [`backup/pre-calendar-settings-v6-2026-11-17`](h
 ### Experience V7 — readable themes and operational page controls
 
 The previous V6 is preserved at [`backup/pre-v7-operational-polish-2026-11-17`](https://github.com/SacredRebel/TorusMindDashboard-visual/tree/backup/pre-v7-operational-polish-2026-11-17). V7 refines secondary-page headers and both brand themes, fixes dark Calendar contrast, adds fast in-place appointment accordions with clear contact actions, adds expandable Events table rows, and upgrades Pipeline with filters, statistics, selection, bulk ownership/stage updates and quick CRM actions. See [the V7 workflow guide](docs/EXPERIENCE-V7-UI-WORKFLOWS.md).
+
+
+### Experience V8 — original geometry restored and differentiated pipeline stages
+
+V8 corrects a real CSS background-layer sizing defect that caused square patches in ROI, Settings and other cards, restores original sacred geometry through explicit transparent ornaments in both themes, strengthens the original Torus header triangles and corner artwork, improves warm text/card contrast, and assigns each of the **six pipeline stages** its own complete light/dark column-and-card color treatment. The approved V7 functionality and animated Torus/Mandala are preserved. See [V8 implementation and QA guide](docs/EXPERIENCE-V8-VISUAL-FINISH.md). Rollback: [`backup/pre-v8-geometry-stage-polish-2026-11-18`](https://github.com/SacredRebel/TorusMindDashboard-visual/tree/backup/pre-v8-geometry-stage-polish-2026-11-18).

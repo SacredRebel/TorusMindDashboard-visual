@@ -34,9 +34,9 @@ async def main():
    # Click a real saved event through its compact mobile day or full desktop chip.
    item=page.locator('.cal-chip.event').first
    key=await item.get_attribute('data-cal-date')
-   await page.locator('.cal-cell[data-cal-cell="'+key+'"]').click()
-   if width>700:await page.locator('.cal-chip.event').first.click()
-   else:await page.locator('.cal-day-panel .cal-entry-link[data-cal-open^="event:"]').first.click()
+   await page.locator('.cal-date[data-cal-day="'+key+'"]').click()
+   # Since V7, clicking the day shows compact accordions; clicking an entry expands it.
+   await page.locator('.cal-day-panel .cal-appointment-trigger[data-cal-open^="event:"]').first.click()
    assert page.url.endswith('#calendar')
    summary=page.locator('.cal-record-summary')
    assert await summary.count()==1
@@ -50,15 +50,14 @@ async def main():
    # Follow-up record also opens a side summary; partner link is explicit.
    follow=page.locator('.cal-chip.follow').first
    date=await follow.get_attribute('data-cal-date')
-   await page.locator('.cal-cell[data-cal-cell="'+date+'"]').click()
-   if width>700:await page.locator('.cal-chip.follow').first.click()
-   else:await page.locator('.cal-day-panel .cal-entry-link[data-cal-open^="follow:"]').first.click()
+   await page.locator('.cal-date[data-cal-day="'+date+'"]').click()
+   await page.locator('.cal-day-panel .cal-appointment-trigger[data-cal-open^="follow:"]').first.click()
    assert page.url.endswith('#calendar')
    assert await page.locator('.cal-record-summary .cal-record-link[href^="#partner-"]').count()==1
    assert await page.locator('.cal-record-summary [data-act="edit-partner"]').count()==1
    # Event creation on a selected date, with migration-aware time/notes fields in demo.
    chosen=await page.locator('.cal-cell:not(.is-outside) .cal-date').nth(6).get_attribute('data-cal-day')
-   await page.locator('.cal-cell[data-cal-cell="'+chosen+'"]').click()
+   await page.locator('.cal-date[data-cal-day="'+chosen+'"]').click()
    await page.locator('[data-act="calendar-add-event"]').last.click()
    form=page.locator('[data-form="event"]')
    assert await form.locator('[name="date"]').input_value()==chosen
@@ -76,7 +75,7 @@ async def main():
    assert await page.locator('[data-drawer]').is_hidden()
    assert await page.get_by_text('Fictional V6 Test Gathering').count()>0
    # Event summary shows persisted demo notes, linked partner and time.
-   await page.locator('.cal-day-panel .cal-entry-link').filter(has_text='Fictional V6 Test Gathering').click()
+   await page.locator('.cal-day-panel .cal-appointment-trigger').filter(has_text='Fictional V6 Test Gathering').click()
    detail=page.locator('.cal-record-summary')
    assert await detail.get_by_text('Fictional logistics').count()>0
    assert await detail.get_by_text('10:00').count()>0
