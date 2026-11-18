@@ -38,7 +38,7 @@
   const CHANNELS = ['Discovery form (website)', 'Phone call', 'Email', 'Provider referral form', 'At an event', 'Walk-in', 'Not recorded'];
   const EVENT_TYPES = ['Lunch-and-learn', 'Webinar', 'Open house', 'Q&A', 'Tea', 'Integration circle', 'Community talk'];
   const TYPES = ['Clinical referrer', 'Hospital colleague', 'Community venue'];
-  const OWNERS = ['Kim', 'Shari', 'Annette', 'Stephanie', 'Avonny'];
+  const OWNERS = ['Torus team', 'Shari', 'Annette', 'Stephanie', 'Avonny'];
   const METHODS = ['Email', 'Text', 'Phone', 'In-person', 'Letter', 'Zoom'];
   const OUTCOMES = ['No response', 'Replied', 'Conversation held', 'Meeting scheduled', 'Materials sent', 'Referral agreed', 'Declined'];
   const PACKAGES = { 'None yet': 0, 'Single infusion': 450, '4-session series': 1800, '6-session series': 2600, 'Spravato (insurance)': 0 };
@@ -203,10 +203,10 @@
     { id: 'today', name: 'Today', icon: 'today' },
     { id: 'partners', name: 'Partners', long: 'Referral partners', icon: 'partners' },
     { id: 'patients', name: 'Patients', long: 'Patient leads', icon: 'patients' },
+    { id: 'calendar', name: 'Calendar', icon: 'calendar' },
     { id: 'pipeline', name: 'Pipeline', icon: 'pipeline' },
     { id: 'events', name: 'Events', long: 'Events & education', icon: 'events' },
     { id: 'sources', name: 'ROI', long: 'Sources & ROI', icon: 'sources' },
-    { id: 'calendar', name: 'Calendar', icon: 'calendar' },
     { id: 'setup', name: 'Settings', icon: 'settings' },
   ];
   $('[data-nav]').innerHTML = PAGES.map((p) => `<a href="#${p.id}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[p.icon]}</svg><span>${esc(p.name)}${p.long ? `<span class="sr lbl-long"> (${esc(p.long)})</span>` : ''}</span></a>`).join('');
@@ -237,25 +237,25 @@
       const sc = scorecard(), met = sc.filter(isMet).length;
       const upcoming = DATA.events.filter((e) => days(e.date) >= 0).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3);
       const delta = tm.leads - lm.leads, soon = attention.length - late.length;
-      const who = LIVE ? (me?.name || session?.user?.email || '').split(/[ @]/)[0] : 'Kim';
-      return `<section class="card welcome"><div><h2>${greeting()}${who ? ', ' + esc(who) : ''}</h2><p>${late.length ? `${plural(late.length, 'follow-up')} overdue and ${soon} due in the next two days.` : soon ? `No follow-ups are overdue. ${soon} due in the next two days.` : 'No follow-ups are overdue.'} ${met} of ${sc.length} playbook targets are met so far.</p>
+      const who = 'Torus team';
+      return `<section class="card welcome today-hero"><div><h2>${greeting()}${who ? ', ' + esc(who) : ''}</h2><p>${late.length ? `${plural(late.length, 'follow-up')} overdue and ${soon} due in the next two days.` : soon ? `No follow-ups are overdue. ${soon} due in the next two days.` : 'No follow-ups are overdue.'} ${met} of ${sc.length} playbook targets are met so far.</p>
           <a class="btn" href="#partners">Open follow-ups</a></div>${torusSvg()}</section>
-        <section class="kpis" aria-label="Key numbers">
+        
+        <div class="today-workspace"><section class="card today-focus"><div class="card-head"><h2>Needs attention</h2><a href="#partners">All partners</a></div>
+            <div class="rows">${withState(attention, { msg: DATA.partners.length ? 'Nothing is due in the next two days.' : 'No referral partners yet. Add the first one.', btn: 'Add a partner', act: 'add-partner' }, (items) => items.slice(0, 4).map((p) => `<a class="row" href="#partner-${esc(p.id)}"><span><span class="row-title">${esc(p.nextStep || 'Follow up')}</span><small>${esc(p.contact)} · ${esc(p.org)}${p.owner ? ' · ' + esc(p.owner) : ''}</small></span>${dueChip(p)}</a>`).join(''))}</div></section>
+          ${miniCalendar(upcoming)}</div>
+        <section class="kpis today-kpis" aria-label="Key numbers">
           ${kpi('New patient leads, this month', tm.leads, `${delta >= 0 ? '+' : ''}${delta} vs. ${fmtMonth(LAST_MONTH)}`, delta >= 0 ? 'good' : 'bad')}
           ${kpi('Lead → consult rate', all.leads ? pct(cr) : '–', !all.leads ? 'No leads recorded yet' : cr >= 0.4 ? 'At or above the 40% target' : 'Below the 40% target', all.leads ? (cr >= 0.4 ? 'good' : 'bad') : '')}
           ${kpi('Active referrers', active, `of ${DATA.partners.filter((p) => p.status !== 'Not a fit').length} partners in play`)}
           ${kpi('Follow-ups overdue', late.length, late.length ? 'Clear these first' : 'All caught up', late.length ? 'bad' : 'good')}
           ${kpi('Discovery form, this month', df.leads, `${df.consults} became consults`)}
         </section>
-        <div class="bento">
-          <section class="card span-7"><div class="card-head"><h2>Needs attention</h2><a href="#partners">All partners</a></div>
-            <div class="rows">${withState(attention, { msg: DATA.partners.length ? 'Nothing is due in the next two days.' : 'No referral partners yet. Add the first one.', btn: 'Add a partner', act: 'add-partner' }, (items) => items.map((p) => `<a class="row" href="#partner-${esc(p.id)}"><span><span class="row-title">${esc(p.nextStep || 'Follow up')}</span><small>${esc(p.contact)} · ${esc(p.org)}${p.owner ? ' · ' + esc(p.owner) : ''}</small></span>${dueChip(p)}</a>`).join(''))}</div></section>
-          <section class="card span-5"><div class="card-head"><h2>Where new patients came from</h2><span class="muted">Last 3 months · leads</span></div>
+        
+        <div class="bento today-insights"><section class="card span-6 today-insight"><div class="card-head"><h2>Where new patients came from</h2><span class="muted">Last 3 months · leads</span></div>
             ${withState(src, { msg: 'No patient leads recorded in the last 3 months. Import the IntakeQ export on the Patients page.', btn: 'Import IntakeQ export', act: 'import' }, (items) => `<div class="bars" role="list">${items.map((s) => `<div class="bar-row" role="listitem"><span>${esc(s.name)}</span><div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${(s.leads / max) * 100}%;background:var(--chart-1)"></div></div><span class="num">${s.leads} <span class="muted">· ${s.conv} converted</span></span></div>`).join('')}</div>`)}</section>
-          <section class="card span-7"><div class="card-head"><h2>Playbook scorecard</h2><a href="#sources">Sources & ROI</a></div>${withState(sc, { msg: 'Set the opening date in Settings to start the scorecard.' }, (items) => items.slice(0, 6).map(scoreRow).join('') + `<p class="muted" style="margin-top:var(--space-3)">Counting from opening on ${esc(fmt(DATA.settings.openDate, { month: 'long', day: 'numeric', year: 'numeric' }))}. <a href="#sources">See all ${items.length}</a></p>`)}</section>
-          <section class="card span-5"><div class="card-head"><h2>Coming up</h2><a href="#calendar">Calendar</a></div>
-            <div class="rows">${withState(upcoming, { msg: 'No events scheduled.', btn: 'Plan an event', act: 'add-event' }, (items) => items.map((e) => `<a class="row" href="#event-${esc(e.id)}"><span><span class="row-title">${esc(e.name)}</span><small>${esc(e.type || '')} · ${esc(e.format)}${e.venue ? ' · ' + esc(partner(e.venue)?.org) : ''}</small></span><span class="chip">${esc(rel(e.date))}</span></a>`).join(''))}</div></section>
-        </div>`;
+          <section class="card span-6 today-insight"><div class="card-head"><h2>Playbook scorecard</h2><a href="#sources">Sources & ROI</a></div>${withState(sc, { msg: 'Set the opening date in Settings to start the scorecard.' }, (items) => items.slice(0, 6).map(scoreRow).join('') + `<p class="muted" style="margin-top:var(--space-3)">Counting from opening on ${esc(fmt(DATA.settings.openDate, { month: 'long', day: 'numeric', year: 'numeric' }))}. <a href="#sources">See all ${items.length}</a></p>`)}</section>
+          </div>`;
     },
 
     partners() {
@@ -393,6 +393,35 @@
     const w = Math.min(1, s.target ? s.actual / s.target : 0) * 100;
     return `<div class="score"><span>${esc(s.label)}<small>${esc(s.a === 'D' ? 'All sources' : act(s.a).name)} · target ${esc(tgt)}</small></span><span class="chip ${isMet(s) ? 'success' : ''}">${isMet(s) ? 'Met · ' : ''}${esc(show)}</span><div class="meter" aria-hidden="true"><i class="${isMet(s) ? 'met' : ''}" style="width:${w}%"></i></div></div>`;
   }
+
+  function miniCalendar(upcoming) {
+    const m=ui.month;
+    const first=new Date(m.getFullYear(),m.getMonth(),1);
+    const start=new Date(m.getFullYear(),m.getMonth(),1-first.getDay());
+    const records=[
+      ...DATA.partners.filter(p=>p.next&&p.status!=='Not a fit').map(p=>({date:p.next,kind:'follow'})),
+      ...DATA.events.map(e=>({date:e.date,kind:'event'}))
+    ];
+    const byDate=new Map();
+    if(ui.state==='ready')for(const x of records){if(!byDate.has(x.date))byDate.set(x.date,[]);byDate.get(x.date).push(x);}
+    const cells=Array.from({length:42},(_,i)=>{
+      const d=new Date(start.getFullYear(),start.getMonth(),start.getDate()+i);
+      const key=iso(d),items=byDate.get(key)||[];
+      const off=d.getMonth()!==m.getMonth(),now=key===iso(TODAY);
+      const name=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+      return `<a class="today-day${off?' is-outside':''}${now?' is-today':''}${items.length?' has-items':''}" href="#calendar" aria-label="${esc(name)}, ${items.length} scheduled" title="Open ${esc(name)} in calendar">
+        <span class="today-day-number">${d.getDate()}</span><span class="today-day-dots" aria-hidden="true">${items.slice(0,3).map(x=>`<i class="${x.kind}"></i>`).join('')}</span></a>`;
+    }).join('');
+    const upcomingList=upcoming.slice(0,1).map(e=>`<a class="today-upcoming-event" href="#event-${esc(e.id)}"><span class="today-event-mark" aria-hidden="true"></span><span><b>${esc(e.name)}</b><small>${esc(fmt(e.date,{weekday:'short',month:'short',day:'numeric'}))}</small></span><span aria-hidden="true">↗</span></a>`).join('');
+    return `<section class="card today-mini-calendar" aria-label="Monthly calendar and upcoming events">
+      <div class="card-head"><h2>Calendar</h2><a href="#calendar">Full calendar</a></div>
+      <div class="today-mini-controls"><div><b>${esc(m.toLocaleDateString('en-US',{month:'long',year:'numeric'}))}</b><small>Follow-ups &amp; community events</small></div>
+      <div class="today-mini-month-actions"><button class="today-mini-month-btn" type="button" data-month="-1" aria-label="Previous month">‹</button><button class="today-mini-month-btn is-now" type="button" data-month="0" aria-label="Back to current month">Today</button><button class="today-mini-month-btn" type="button" data-month="1" aria-label="Next month">›</button></div></div>
+      <div class="today-mini-grid" role="group" aria-label="${esc(m.toLocaleDateString('en-US',{month:'long',year:'numeric'}))} days">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<span class="today-weekday">${d}</span>`).join('')}${cells}</div>
+      <div class="today-mini-footer"><span class="today-mini-legend"><i class="follow"></i> Follow-up <i class="event"></i> Event</span><a href="#calendar">View schedule <span aria-hidden="true">↗</span></a></div>
+      <div class="today-upcoming"><div class="today-upcoming-label">Up next</div>${upcomingList||'<p class="muted">No upcoming events scheduled.</p>'}</div></section>`;
+  }
+
   function kpi(label, value, sub, tone = '') { return `<div class="card kpi"><span>${esc(label)}</span><b class="num">${esc(value)}</b><small class="${tone}">${esc(sub)}</small></div>`; }
   function greeting() { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; }
   function torusSvg() { return `<svg class="torus" viewBox="0 0 220 130" aria-hidden="true">${Array.from({ length: 11 }, (_, i) => `<ellipse cx="110" cy="65" rx="${100 - i * 4}" ry="${18 + i * 4.2}" transform="rotate(${(i - 5) * 3} 110 65)"/>`).join('')}</svg>`; }
@@ -412,7 +441,7 @@
         <label class="field-label">Specialty<input class="field" name="spec" value="${esc(p.spec)}"></label>
         <label class="field-label">City<input class="field" name="city" value="${esc(p.city)}"></label>
         <label class="field-label">Status<select class="field" name="status">${opts(ALL_STATUS, p.status || 'Cold')}</select></label>
-        <label class="field-label">Owner<select class="field" name="owner">${opts(OWNERS, p.owner || 'Kim')}</select></label>
+        <label class="field-label">Owner<select class="field" name="owner">${opts(OWNERS, p.owner || 'Torus team')}</select></label>
         <label class="field-label">Next follow-up<input class="field" type="date" name="next" value="${esc(p.id ? p.next : iso(d(3)))}"></label>
         <label class="field-label">Phone<input class="field" type="tel" name="phone" value="${esc(p.phone)}"></label>
         <label class="field-label full">Next step<input class="field" name="nextStep" value="${esc(p.nextStep)}" placeholder="e.g. Send intro letter"></label>

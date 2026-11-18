@@ -37,7 +37,16 @@ async def main():
                 if not result['motif'].startswith('url('):errors.append(f'{width} {route}: missing geometry header')
                 if route=='today':
                     if result['geometry']<100:errors.append(f'{width} {route}: canvas unavailable')
-                    if await page.locator('.torus-field__mode').count()!=4:errors.append(f'{width}: missing geometry modes')
+                    if await page.locator('.torus-field__mode').count()!=3:errors.append(f'{width}: missing geometry modes')
+                    if await page.locator('.today-mini-calendar .today-day').count()!=42:errors.append(f'{width}: incomplete calendar')
+                    if await page.locator('.torus-field video').count():errors.append(f'{width}: original film should be absent')
+                    if 'Torus team' not in await page.locator('.welcome h2').inner_text():errors.append(f'{width}: greeting not team-neutral')
+                    if await page.locator('[data-nav] a').nth(3).get_attribute('href')!='#calendar':errors.append(f'{width}: calendar navigation out of order')
+                    before=await page.locator('.today-mini-controls b').inner_text()
+                    await page.get_by_role('button',name='Next month').click()
+                    after=await page.locator('.today-mini-controls b').inner_text()
+                    if before==after:errors.append(f'{width}: month navigation did not change')
+                    await page.get_by_role('button',name='Back to current month').click()
                     await page.locator('.torus-field__mode').nth(1).click()
                     if await page.locator('.torus-field').get_attribute('data-geometry-mode')!='flower':
                         errors.append(f'{width}: mandala interaction failed')

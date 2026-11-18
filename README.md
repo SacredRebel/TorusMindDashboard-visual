@@ -22,7 +22,7 @@ Business development dashboard and referral CRM for Torus Mind & Medicine (Stuar
 
 ## Visual identity fork (Nov 2026)
 
-This fork retains the business-development CRM while adding Torus Medicine's original wordmark and art, sacred-geometry treatments on each page, interactive torus and mandala modes, and an on-demand original-brand animation. Start npm run dev and visit http://localhost:4173/index.html#today. Run python scripts/visual_regression.py for desktop/mobile screenshots and navigation checks. See docs/VISUAL-IDENTITY-GUIDE.md for architecture, attribution and privacy notes. All sample data is fictional.
+This fork retains the business-development CRM while adding Torus Medicine's original wordmark and art, sacred-geometry treatments on each page, interactive torus and mandala modes, and page-specific geometric details (no original-brand video on Today). Start npm run dev and visit http://localhost:4173/index.html#today. Run python scripts/visual_regression.py for desktop/mobile screenshots and navigation checks. See docs/VISUAL-IDENTITY-GUIDE.md for architecture, attribution and privacy notes. All sample data is fictional.
 
 ## Repo layout
 
@@ -55,3 +55,7 @@ This fork retains the business-development CRM while adding Torus Medicine's ori
 - **Go live:** create the client's Supabase project and follow docs/SETUP.md part 2.
 - **IntakeQ:** weekly CSV import now (summarised to monthly counts in the browser); the IntakeQ API later.
 - **"For Providers" page** on the website, with a "Make a referral" IntakeQ form and a provider-only partner/RSVP form.
+
+### Visual v2 backup and change policy
+
+The previous finished design is preserved in branch [`backup/pre-calendar-liquid-polish-2026-11-17`](https://github.com/SacredRebel/TorusMindDashboard-visual/tree/backup/pre-calendar-liquid-polish-2026-11-17). Future visual iterations must remain **additive**: never rebuild from scratch or remove the current torus, mandala, sacred geometry, main identity, and visual language. The second pass makes Today a compact command center with an embedded calendar and denser KPIs; Calendar now sits directly after Patients in navigation. Polishing follows the rules from the [`dashboard-tools-`](https://github.com/SacredRebel/dashboard-tools-) repository. The preview uses fictional `sample.js` only, with no inherited business demo imports.
